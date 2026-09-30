@@ -19,9 +19,9 @@ To set up the project locally:
 
 ## Development Phase 2: Stratified 70/15/15 Data Splitting
 
-- Created `split_data.py` to partition datasets into 70% Train, 15% Validation, and 15% Test sets.
-- Applied stratified sampling (`stratify=y`) using `random_state=42` to strictly preserve class ratios across severe imbalanced splits.
-- Test sets are frozen (`test_frozen.csv`) to prevent data leakage until final model evaluation.
-- Added split loader utility functions in `data_loader.py`.
-- Outputs generated in `data/splits/primary/` and `data/splits/taiwan/` alongside top-level convenience files in `data/`.
+Creates split_data.py to partition datasets into 70% Train, 15% Validation, and 15% Test sets.
+Applies stratified sampling (stratify=y) using random_state=42 to strictly preserve class ratios across severe imbalanced splits.
+Freezes test sets (test_frozen.csv) to prevent data leakage until final model evaluation.
+Adds split loader utility functions in data_loader.py.
+Generates outputs in data/splits/primary/ and data/splits/taiwan/ alongside top-level convenience files in data/.
 
