@@ -16,3 +16,12 @@ To set up the project locally:
 - Initialized Python virtual environment.
 - Added core dependencies for data manipulation, machine learning, and fairness constraints (`pandas`, `scikit-learn`, `fairlearn`, `aif360`).
 - Configured `.gitignore` for Python projects.
+
+## Development Phase 2: Stratified 70/15/15 Data Splitting
+
+- Created `split_data.py` to partition datasets into 70% Train, 15% Validation, and 15% Test sets.
+- Applied stratified sampling (`stratify=y`) using `random_state=42` to strictly preserve class ratios across severe imbalanced splits.
+- Test sets are frozen (`test_frozen.csv`) to prevent data leakage until final model evaluation.
+- Added split loader utility functions in `data_loader.py`.
+- Outputs generated in `data/splits/primary/` and `data/splits/taiwan/` alongside top-level convenience files in `data/`.
+
