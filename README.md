@@ -25,3 +25,20 @@ Freezes test sets (test_frozen.csv) to prevent data leakage until final model ev
 Adds split loader utility functions in data_loader.py.
 Generates outputs in data/splits/primary/ and data/splits/taiwan/ alongside top-level convenience files in data/.
 
+## Development Phase 3: Baseline Models and MLflow Tracking
+
+Install the project dependencies, then run the primary dataset baselines from the project directory:
+
+```bash
+python baseline_models.py
+```
+
+The script trains a majority-class `DummyClassifier` and a balanced `LogisticRegression` using the training split, evaluates ROC-AUC and F1 on the validation split, and logs parameters, validation metrics, and scikit-learn model artifacts to the `Credit_Default_Baseline_Models` MLflow experiment. The frozen test split is not loaded or used.
+
+To run the same baselines on the Taiwan dataset, use:
+
+```bash
+python baseline_models.py --dataset taiwan
+```
+
+Start the local MLflow UI from the project directory with `mlflow ui` to compare runs.

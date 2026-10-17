@@ -6,3 +6,4 @@ seaborn
 jupyter
 fairlearn
 aif360
+mlflow
