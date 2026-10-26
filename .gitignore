@@ -1,8 +1,14 @@
 venv/
 __pycache__/
 *.pyc
+.pytest_cache/
 .ipynb_checkpoints/
 .env
-data/
+data/raw/*.csv
+data/raw/*.xls
+data/processed/test*.parquet
+models/candidates/exp_grad*
 mlruns/
 mlflow.db*
+logs/
+metrics/

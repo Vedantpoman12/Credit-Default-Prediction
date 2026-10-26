@@ -1,0 +1,203 @@
+CREDIT DEFAULT PREDICTION WITH FAIRNESS CONSTRAINTS - PROJECT SUMMARY
+======================================================================
+Educational artefact, NOT for real lending decisions. (BTECH CAP 501)
+
+Built by following "Credit_Default_Fast_Track_Plan_and_Prompts.docx", Steps 1 to 8.
+Everything from the previous version was deleted except the raw datasets, which
+were moved to data/raw/.
+
+
+1. WHAT THE PROJECT DOES
+------------------------
+It predicts whether a credit-card client will default next month, then makes an
+approve / refer / decline recommendation that is constrained to be fair across
+age bands. The fairness criterion is equal opportunity: defaulters are caught at
+the same rate (TPR) in every age band. The model comes with explanations
+(SHAP, DiCE), a REST API, drift monitoring, CI gates and EU AI Act style
+documentation.
+
+
+2. DATASETS (adapted from the plan)
+-----------------------------------
+The plan names "Give Me Some Credit" and German Credit, but the repository holds
+different data, so:
+  - Primary dataset: data/raw/default_of_credit_card_clients.csv (UCI Taiwan,
+    30,000 rows, 22.1% default). AGE gives the protected age bands
+    (<25, 25-34, 35-44, 45-54, 55-64, 65+). AGE and SEX are never model features.
+  - Fairness sandbox (stands in for German Credit, which has explicit sex and age):
+    data/raw/application_record.csv + credit_record.csv (Kaggle credit card
+    approval; label = ever 60+ days past due, 1.69% default).
+  - Dataset-specific adaptations:
+      sentinels 96/98 -> undocumented codes EDUCATION 0/5/6 and MARRIAGE 0
+      "income" drift  -> LIMIT_BAL and PAY_AMT1-6 used as the income proxy
+      base rate 6.7% -> 12%  becomes  22.1% -> 40% (same ~1.8x rise)
+
+
+3. TOOLS AND LIBRARIES
+----------------------
+Python 3.14 (venv/), pandas 2.3, scikit-learn 1.9, XGBoost 3.4, Optuna 5.0,
+Fairlearn 0.15, SHAP 0.54, dice-ml 0.12, Evidently 0.7, MLflow 3.17 (sqlite:
+mlflow.db), FastAPI + Uvicorn, pytest, Docker, GitHub Actions.
+Exact pins are in requirements.txt. macOS also needs `brew install libomp`
+for XGBoost.
+
+
+4. STEP BY STEP: WHAT WAS DONE AND WHERE
+----------------------------------------
+STEP 1 - Repo, data, EDA, pipeline, splits
+  config/config.yaml        all settings (seed 42, features, sentinels, bands,
+                            budgets, thresholds); config/gates.yaml = CI gates
+  src/config.py             config loader and path helper
+  src/data/download.py      fetches data if missing (UCI / Kaggle), writes
+                            SHA-256 checksums to data/raw/CHECKSUMS.txt
+  src/data/load.py          loads both datasets; age_band() helper
+  src/data/eda.py           "# %%" cell script -> reports/figures/eda_*.png and
+                            reports/data_quality_issues.csv (3 issues:
+                            undocumented codes 345+54; utilisation >1 = 2,115 and
+                            negative bills = 590; 65+ group only 110 people)
+  src/features/pipeline.py  SentinelCleaner, InvalidAgeFixer, Winsorizer
+                            (caps learned in fit), MedianImputer (+ missing
+                            flags); all fitted on train only
+  src/data/split.py         stratified 70/15/15 -> data/processed/*.parquet;
+                            age_band/AGE/SEX in separate aligned
+                            *_sensitive.parquet; SPLIT_CHECKSUMS.json;
+                            verify_checksums() raises on change; load_split()
+                            refuses to load the test split
+  tests/test_features.py    sentinels, no NaN, train-only caps, leakage,
+                            no age/sex features, checksums + test lock
+  docs/decisions_log.md, docs/data_card_draft.md
+
+STEP 2 - Models
+  src/models/train_baselines.py  majority class + balanced logistic regression,
+                                 logged to MLflow "credit-default"
+                                 (val AUC 0.500 / 0.716)
+  src/models/train_xgb.py        XGBoost + scale_pos_weight (3.52), Optuna
+                                 25 trials, stratified 3-fold CV on TRAIN, early
+                                 stopping -> models/xgb_pipeline.joblib
+                                 (CV AUC 0.785)
+  src/models/calibrate.py        isotonic and Platt on VALIDATION via
+                                 FrozenEstimator; ECE (15 bins), Brier;
+                                 picks by out-of-fold ECE -> isotonic
+                                 (ECE 0.203 -> 0.012);
+                                 reports/figures/reliability_diagram.png
+  src/models/metrics.py          ECE and bootstrap CI helpers
+  src/models/evaluate.py         val ROC-AUC 0.786 [0.769, 0.801], PR-AUC
+                                 0.542 [0.509, 0.575] (500 bootstraps),
+                                 threshold table, F1-stable band, cost curve,
+                                 confusion matrix -> reports/validation_metrics.json
+  scripts/export_errors.py       25 misclassified val cases (13 FP / 12 FN) with
+                                 an empty notes column -> reports/error_cases.csv
+
+STEP 3 - Fairness
+  src/fairness/metrics.py        MetricFrame report (selection rate, TPR, FPR,
+                                 precision, count) + DP / equalised-odds /
+                                 equal-opportunity gaps; warns when n < 30
+                                 (those groups are excluded from gaps)
+  src/fairness/proxy_analysis.py feature vs sensitive-attribute associations for
+                                 both datasets -> reports/proxy_table.csv
+                                 (nothing > 0.4 in Taiwan; 2 flags in sandbox)
+  src/fairness/sandbox_dev.py    sandbox: repeated stratified CV with
+                                 unconstrained, ExponentiatedGradient (eps sweep)
+                                 and ThresholdOptimizer for sex and age bands
+                                 -> reports/sandbox_fairness.csv
+  src/fairness/policy.py         FairPolicy = single loadable artefact
+                                 (calibrated probability + deterministic
+                                 fairness flag); XGBPipelineClassifier for EG
+  src/fairness/apply_primary.py  candidates on the primary data, selection on
+                                 VALIDATION only -> models/candidates/*,
+                                 models/policy.joblib, reports/fairness_candidates.json
+                                 (--skip-mitigation = unfair demo)
+  src/fairness/tradeoff.py       reports/tradeoff_table.csv + tradeoff_frontier.png
+  docs/fairness_policy_decision.md, docs/ethics_audit.md
+  RESULT: ThresholdOptimizer deployed (val TPR gap 0.015 vs 0.118 unconstrained;
+  EG stayed at about 0.10). The API therefore takes age_band, used only for
+  the threshold lookup.
+
+STEP 4 - Explainability and recourse
+  src/explain/shap_explain.py    booster pred_contribs mapped back to raw
+                                 features; beeswarm, bar, 4 dependence plots,
+                                 3 waterfalls (approve/refer/decline);
+                                 top-5 in about 3.7 ms
+  src/explain/recourse_dice.py   DiCE wrapping the FULL decision policy; AGE
+                                 immutable; actionable PAY_0, BILL_AMT1,
+                                 PAY_AMT1-3 with ranges and directions;
+                                 3/3 counterfactuals verified to flip to approve
+  docs/explainability_audit.md
+
+STEP 5 - API and Docker
+  src/api/schemas.py   Pydantic request (21 features + optional age_band) and
+                       response models
+  src/api/policy.py    approve/refer/decline rules (configurable thresholds)
+  src/api/main.py      POST /score, POST /recourse, GET /model-info, GET /health;
+                       loads artefacts once; every refer -> human review;
+                       logs to logs/decisions.jsonl
+  src/api/static/index.html single-page web GUI served at "/" (no external
+                       libraries): applicant form with presets, decision +
+                       probability meter + SHAP bars, DiCE recourse button,
+                       recent-decisions table (GET /decisions), model and
+                       fairness dashboard (from /model-info)
+  src/models/model_info.py  writes models/model_info.json (+ DiCE reference sample)
+  docker/Dockerfile (non-root, healthcheck), docker-compose.yml (4-CPU limit)
+  tests/test_api.py    valid, 422, refer flag, determinism, model-info, health
+  scripts/latency_test.py   500 requests: median 10.25 ms, p95 10.73, p99 11.38
+
+STEP 6 - Monitoring and CI
+  src/monitoring/psi.py          PSI (10 quantile bins, epsilon) + categorical
+                                 PSI + ok/investigate/act table; tests/test_psi.py
+  src/monitoring/drift_report.py Evidently HTML from logs vs training reference
+                                 -> reports/drift/
+  src/monitoring/inject_drift.py (a) income shift: feature PSI 1.21, flagged;
+                                 (b) base rate 40%: label PSI 0.15, flagged;
+                                 decline-rate trend plot
+  scripts/evaluate_gates.py      AUC >= 0.75 and TPR gap <= 0.05 on frozen val
+                                 -> metrics/gate_results.json; non-zero exit on
+                                 failure
+  .github/workflows/ci.yml       pytest -> "Performance gate" -> "Fairness gate"
+                                 -> upload results -> Docker build, push on main only
+  docs/retraining_policy.md, docs/ci_failing_commit_demo.md
+  Deployed policy: both gates PASS. Unconstrained candidate: fairness gate FAIL
+  (0.1175).
+
+STEP 7 - Documentation
+  docs/eu_ai_act/01..08 (system description, risk tier, data governance, testing,
+  accuracy/robustness, human oversight, post-market monitoring, impact
+  assessment), docs/MODEL_CARD.md, docs/DATA_CARD.md. These use only real numbers;
+  unknowns are marked [TO FILL].
+
+STEP 8 - One-time test evaluation and presentation
+  scripts/final_test_eval.py  ran ONCE (lock: reports/final_test.lock) ->
+                              reports/final_results.json, final_test_results.png
+  docs/final_presentation.md  12-slide outline, 5-minute demo script,
+                              15 viva Q&As, report outline OBJ-1..6
+
+
+5. FINAL RESULTS VS TARGETS
+---------------------------
+                       Validation        Test (once)        Target
+  ROC-AUC              0.786             0.781 [0.762,0.798] >= 0.75   PASS
+  ECE                  0.012             0.014               <= 0.05   PASS
+  TPR gap (age bands)  0.015             0.052               <= 0.05   val PASS / test just over
+  Median latency       10.3 ms           -                   <= 50 ms  PASS
+  Unconstrained test TPR gap 0.190 vs EG 0.119 vs deployed ThresholdOptimizer 0.052.
+
+
+6. NOTES AND DEVIATIONS
+-----------------------
+  - The datasets differ from the plan (see section 2).
+  - Python 3.14 and a python:3.14-slim Docker image are used, because only 3.14
+    is installed and the pinned packages need >= 3.11.
+  - The Docker image was not built here (the Docker daemon was not running).
+    CI and branch protection need a GitHub remote; nothing was pushed or
+    committed.
+  - The 65+ band (about 16 people per split) is reported but excluded from gap
+    metrics (n < 30 rule).
+  - To rerun the test evaluation, the lock file has to be deleted manually
+    (this is intentional).
+
+
+7. HOW TO RUN
+-------------
+  make setup && make data && make eda && make train && make explain && make test
+  make serve        # GUI at http://localhost:8000, API docs at /docs
+  make latency && make drift
+  make final        # test set, one time only

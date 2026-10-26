@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fair Credit Scorer</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><rect width=%2216%22 height=%2216%22 rx=%223%22 fill=%22%232f5bd3%22/></svg>">
+<style>
+  :root {
+    --bg: #f5f6f8; --panel: #ffffff; --text: #1d2330; --muted: #667085; --border: #dde1e7;
+    --accent: #2f5bd3; --accent-soft: #e8eefc; --good: #1f8a4c; --good-soft: #e3f4ea;
+    --warn: #b7791f; --warn-soft: #fbf1dc; --bad: #c0392b; --bad-soft: #fbe5e2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b1f27; --text: #e6e8ec; --muted: #9aa3b2; --border: #2c323d;
+      --accent: #7c9cf0; --accent-soft: #232c42; --good: #4cc282; --good-soft: #17301f;
+      --warn: #e0b04f; --warn-soft: #33290f; --bad: #ef6b5d; --bad-soft: #3a1c19;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  .banner { background: var(--warn-soft); color: var(--warn); text-align: center; padding: 6px 16px; font-weight: 600; font-size: 13px; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; background: var(--panel); border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+  header h1 { font-size: 18px; margin: 0; }
+  header .meta { color: var(--muted); font-size: 12px; }
+  nav { display: flex; gap: 4px; }
+  nav button { background: none; border: 1px solid transparent; color: var(--muted); padding: 7px 14px; border-radius: 6px; cursor: pointer; font: inherit; }
+  nav button.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  main { max-width: 1280px; margin: 0 auto; padding: 20px 16px 40px; }
+  .view { display: none; } .view.active { display: block; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin-bottom: 20px; }
+  .card h2 { font-size: 15px; margin: 0 0 12px; }
+  .card h3 { font-size: 13px; margin: 18px 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .presets { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+  .fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 12px; }
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+  input, select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 7px 8px; width: 100%; }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .btn { font: inherit; border-radius: 6px; padding: 8px 14px; cursor: pointer; border: 1px solid var(--border); background: var(--panel); color: var(--text); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .btn:disabled { opacity: .55; cursor: wait; }
+  .actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+  .hint { color: var(--muted); font-size: 12px; }
+  .error { background: var(--bad-soft); color: var(--bad); border-radius: 6px; padding: 10px; margin-top: 12px; white-space: pre-wrap; display: none; }
+  .empty { color: var(--muted); text-align: center; padding: 40px 10px; }
+  .decision { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+  .badge { font-size: 20px; font-weight: 700; padding: 8px 18px; border-radius: 8px; text-transform: uppercase; letter-spacing: .03em; }
+  .approve { background: var(--good-soft); color: var(--good); }
+  .refer { background: var(--warn-soft); color: var(--warn); }
+  .decline { background: var(--bad-soft); color: var(--bad); }
+  .meter { position: relative; height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--good) 0 30%, var(--warn) 30% 60%, var(--bad) 60% 100%); opacity: .85; margin: 6px 0 4px; }
+  .meter .pin { position: absolute; top: -5px; width: 4px; height: 22px; background: var(--text); border-radius: 2px; transform: translateX(-2px); transition: left .3s; }
+  .scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+  .stat { font-size: 28px; font-weight: 700; }
+  .review { background: var(--warn-soft); color: var(--warn); padding: 8px 10px; border-radius: 6px; margin: 12px 0; font-size: 13px; }
+  .shap-row { display: grid; grid-template-columns: 110px 1fr 64px; align-items: center; gap: 8px; margin: 6px 0; font-size: 12px; }
+  .shap-track { position: relative; height: 14px; background: var(--bg); border-radius: 3px; }
+  .shap-track::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--border); }
+  .shap-track.plain::after { display: none; }
+  .shap-bar { position: absolute; top: 0; bottom: 0; border-radius: 3px; }
+  .shap-val { text-align: right; font-variant-numeric: tabular-nums; }
+  .cf { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin: 8px 0; }
+  .cf .tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  td.num { font-variant-numeric: tabular-nums; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+  .kpi { border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+  .kpi .label { color: var(--muted); font-size: 12px; }
+  .kpi .value { font-size: 22px; font-weight: 700; margin-top: 2px; }
+  .pass { color: var(--good); } .fail { color: var(--bad); }
+  .table-wrap { overflow-x: auto; }
+</style>
+</head>
+<body>
+<div class="banner">⚠ Educational artefact, not for real lending decisions</div>
+<header>
+  <div>
+    <h1>Fair Credit Scorer</h1>
+    <div class="meta" id="version">Loading model…</div>
+  </div>
+  <nav>
+    <button class="active" data-view="score">Score applicant</button>
+    <button data-view="history">Recent decisions</button>
+    <button data-view="model">Model &amp; fairness</button>
+  </nav>
+</header>
+
+<main>
+  <section class="view active" id="view-score">
+    <div class="grid">
+      <form class="card" id="form" novalidate>
+        <h2>Applicant</h2>
+        <div class="presets">
+          <span class="hint" style="align-self:center">Load example:</span>
+          <button type="button" class="btn" data-preset="good">Reliable payer</button>
+          <button type="button" class="btn" data-preset="mixed">Occasional delays</button>
+          <button type="button" class="btn" data-preset="late">Seriously late</button>
+        </div>
+
+        <h3>Profile</h3>
+        <div class="fields">
+          <label>Credit limit (NT$)<input name="LIMIT_BAL" type="number" min="1" step="1000" required></label>
+          <label>Education
+            <select name="EDUCATION">
+              <option value="1">Graduate school</option><option value="2">University</option>
+              <option value="3">High school</option><option value="4">Other</option><option value="0">Unknown</option>
+            </select>
+          </label>
+          <label>Marital status
+            <select name="MARRIAGE">
+              <option value="1">Married</option><option value="2">Single</option><option value="3">Other</option><option value="0">Unknown</option>
+            </select>
+          </label>
+          <label>Age band
+            <select name="age_band">
+              <option>&lt;25</option><option selected>25-34</option><option>35-44</option><option>45-54</option><option>55-64</option><option>65+</option>
+            </select>
+          </label>
+        </div>
+        <p class="hint">The age band is never a model input. It is used only to look up the fairness threshold.</p>
+
+        <h3>Repayment status (most recent first)</h3>
+        <div class="fields" id="pay-fields"></div>
+
+        <h3>Bill statement amounts (NT$)</h3>
+        <div class="fields" id="bill-fields"></div>
+
+        <h3>Amounts paid (NT$)</h3>
+        <div class="fields" id="payamt-fields"></div>
+
+        <div class="actions">
+          <button type="submit" class="btn primary" id="score-btn">Score applicant</button>
+          <button type="button" class="btn" id="recourse-btn" disabled>How could they be approved?</button>
+        </div>
+        <div class="error" id="error"></div>
+      </form>
+
+      <div>
+        <div class="card" id="result">
+          <h2>Result</h2>
+          <div class="empty" id="result-empty">Fill in the applicant (or load an example) and press <b>Score applicant</b>.</div>
+          <div id="result-body" hidden>
+            <div class="decision">
+              <span class="badge" id="decision"></span>
+              <div>
+                <div class="stat" id="prob"></div>
+                <div class="hint">probability of default next month</div>
+              </div>
+            </div>
+            <div class="meter"><div class="pin" id="pin"></div></div>
+            <div class="scale"><span>0%</span><span>low · 30%</span><span>medium · 60%</span><span>high · 100%</span></div>
+            <div class="review" id="review" hidden>Requires human review: a credit officer must make the final decision.</div>
+            <h3>Top factors (SHAP)</h3>
+            <div id="shap"></div>
+            <p class="hint">Red pushes risk up, green pushes it down. The factors explain the model's raw score. The final decision also applies calibration and an age-band fairness threshold.</p>
+          </div>
+        </div>
+        <div class="card" id="recourse-card" hidden>
+          <h2>Recourse suggestions</h2>
+          <div id="recourse"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-history">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <h2 style="margin:0">Recent decisions</h2>
+        <button class="btn" id="refresh-history">Refresh</button>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Time</th><th>Credit limit</th><th>Latest status</th><th>Age band</th><th>Probability</th><th>Decision</th><th>Review</th></tr></thead>
+        <tbody id="history"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <section class="view" id="view-model">
+    <div class="card">
+      <h2>Validation performance</h2>
+      <div class="kpis" id="kpis"></div>
+    </div>
+    <div class="card">
+      <h2>CI gates</h2>
+      <div class="kpis" id="gates"></div>
+      <h3>True-positive rate by age band (validation)</h3>
+      <div id="tpr"></div>
+    </div>
+    <div class="card">
+      <h2>About this model</h2>
+      <table id="about"></table>
+    </div>
+  </section>
+</main>
+
+<script>
+const PAY_COLS = ["PAY_0", "PAY_2", "PAY_3", "PAY_4", "PAY_5", "PAY_6"];
+const MONTHS = ["Sep", "Aug", "Jul", "Jun", "May", "Apr"];
+const PAY_OPTIONS = [[-2, "No credit used"], [-1, "Paid in full"], [0, "Minimum paid (revolving)"],
+  ...Array.from({ length: 9 }, (_, i) => [i + 1, `${i + 1} month${i ? "s" : ""} late`])];
+const PRESETS = {
+  good: { LIMIT_BAL: 200000, EDUCATION: 1, MARRIAGE: 1, age_band: "35-44", PAY: [-1, -1, -1, -1, -1, -1],
+          BILL: [12000, 9000, 15000, 8000, 11000, 7000], PAYAMT: [9000, 15000, 8000, 11000, 7000, 10000] },
+  mixed: { LIMIT_BAL: 80000, EDUCATION: 2, MARRIAGE: 2, age_band: "25-34", PAY: [0, 0, 1, 0, 0, 0],
+           BILL: [60000, 58000, 55000, 52000, 50000, 48000], PAYAMT: [2500, 2200, 2000, 2000, 1800, 1800] },
+  late: { LIMIT_BAL: 50000, EDUCATION: 2, MARRIAGE: 1, age_band: "25-34", PAY: [2, 2, 2, 0, 0, 0],
+          BILL: [49000, 47000, 45000, 43000, 40000, 38000], PAYAMT: [0, 0, 1500, 1500, 1500, 1500] },
+};
+const LABELS = { LIMIT_BAL: "Credit limit", PAY_0: "Status Sep", PAY_2: "Status Aug", PAY_3: "Status Jul", PAY_4: "Status Jun",
+  PAY_5: "Status May", PAY_6: "Status Apr", EDUCATION: "Education", MARRIAGE: "Marital status" };
+MONTHS.forEach((m, i) => { LABELS[`BILL_AMT${i + 1}`] = `Bill ${m}`; LABELS[`PAY_AMT${i + 1}`] = `Paid ${m}`; });
+
+const $ = (id) => document.getElementById(id);
+const form = $("form");
+const fmt = (n) => Number(n).toLocaleString();
+const pct = (x) => (x * 100).toFixed(1) + "%";
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const statusText = (v) => (PAY_OPTIONS.find(([k]) => k === Number(v)) || [, v])[1];
+
+function buildFields() {
+  $("pay-fields").innerHTML = PAY_COLS.map((c, i) => `<label>${MONTHS[i]}<select name="${c}">${
+    PAY_OPTIONS.map(([v, t]) => `<option value="${v}">${t}</option>`).join("")}</select></label>`).join("");
+  $("bill-fields").innerHTML = MONTHS.map((m, i) => `<label>${m}<input name="BILL_AMT${i + 1}" type="number" step="100" required></label>`).join("");
+  $("payamt-fields").innerHTML = MONTHS.map((m, i) => `<label>${m}<input name="PAY_AMT${i + 1}" type="number" min="0" step="100" required></label>`).join("");
+}
+
+function loadPreset(name) {
+  const p = PRESETS[name];
+  form.LIMIT_BAL.value = p.LIMIT_BAL; form.EDUCATION.value = p.EDUCATION; form.MARRIAGE.value = p.MARRIAGE; form.age_band.value = p.age_band;
+  PAY_COLS.forEach((c, i) => { form[c].value = p.PAY[i]; });
+  p.BILL.forEach((v, i) => { form[`BILL_AMT${i + 1}`].value = v; });
+  p.PAYAMT.forEach((v, i) => { form[`PAY_AMT${i + 1}`].value = v; });
+}
+
+function payload() {
+  const data = {};
+  for (const el of form.elements) {
+    if (!el.name) continue;
+    if (el.value === "") throw new Error(`Please fill in "${el.closest("label").firstChild.textContent.trim()}"`);
+    data[el.name] = el.name === "age_band" ? el.value : Number(el.value);
+  }
+  return data;
+}
+
+async function post(url, body) {
+  const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const data = await r.json();
+  if (!r.ok) {
+    const detail = Array.isArray(data.detail)
+      ? data.detail.map((d) => `${LABELS[d.loc.at(-1)] || d.loc.at(-1)}: ${d.msg}`).join("\n") : data.detail;
+    throw new Error(detail || `Request failed (${r.status})`);
+  }
+  return data;
+}
+
+function showError(msg) { $("error").textContent = msg; $("error").style.display = msg ? "block" : "none"; }
+
+function renderResult(res) {
+  $("result-empty").hidden = true; $("result-body").hidden = false;
+  const d = $("decision"); d.textContent = res.decision; d.className = `badge ${res.decision}`;
+  $("prob").textContent = pct(res.default_probability);
+  $("pin").style.left = `${Math.min(100, res.default_probability * 100)}%`;
+  $("review").hidden = !res.requires_human_review;
+  const max = Math.max(...res.top5_shap.map((s) => Math.abs(s.shap)), 0.01);
+  $("shap").innerHTML = res.top5_shap.map((s) => {
+    const w = (Math.abs(s.shap) / max) * 50, up = s.shap > 0;
+    return `<div class="shap-row"><span title="value ${fmt(s.value)}">${LABELS[s.feature] || s.feature}<br><span class="hint">${
+      s.feature.startsWith("PAY_") && !s.feature.startsWith("PAY_AMT") ? statusText(s.value) : fmt(s.value)}</span></span>
+      <div class="shap-track"><div class="shap-bar" style="${up ? "left:50%" : `left:${50 - w}%`};width:${w}%;background:var(${up ? "--bad" : "--good"})"></div></div>
+      <span class="shap-val ${up ? "fail" : "pass"}">${up ? "+" : ""}${s.shap.toFixed(3)}</span></div>`;
+  }).join("");
+}
+
+function renderRecourse(res) {
+  $("recourse-card").hidden = false;
+  if (res.original_decision === "approve") { $("recourse").innerHTML = `<p>This applicant is already approved.</p>`; return; }
+  const cfs = res.counterfactuals.map((c, i) => `<div class="cf">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b>Option ${i + 1}</b>
+      <span class="tag ${c.new_decision}">${c.verified_flip ? "✓ verified → approve" : "→ " + c.new_decision}</span></div>
+      ${Object.entries(c.changes).map(([f, v]) => `<div>${LABELS[f] || f}: ${
+        f === "PAY_0" ? `${statusText(v.from)} → <b>${statusText(v.to)}</b>` : `${fmt(v.from)} → <b>${fmt(v.to)}</b>`}</div>`).join("")}
+    </div>`).join("");
+  const verified = res.counterfactuals.some((c) => c.verified_flip);
+  const intro = verified ? esc(res.message) : res.counterfactuals.length
+    ? "No change to the actionable features reaches <b>approve</b> for this applicant. The closest options below would move the decision as shown."
+    : "No actionable change was found for this applicant.";
+  $("recourse").innerHTML = `<p>${intro}</p>${cfs || ""}<p class="hint">Only actionable features are changed. Age is locked.</p>`;
+}
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault(); showError("");
+  const btn = $("score-btn"); btn.disabled = true; btn.textContent = "Scoring…";
+  try {
+    renderResult(await post("/score", payload()));
+    $("recourse-card").hidden = true; $("recourse-btn").disabled = false;
+  } catch (err) { showError(err.message); } finally { btn.disabled = false; btn.textContent = "Score applicant"; }
+});
+
+$("recourse-btn").addEventListener("click", async () => {
+  showError("");
+  const btn = $("recourse-btn"); btn.disabled = true; btn.textContent = "Searching counterfactuals…";
+  try { renderRecourse(await post("/recourse", payload())); }
+  catch (err) { showError(err.message); } finally { btn.disabled = false; btn.textContent = "How could they be approved?"; }
+});
+
+document.querySelectorAll("[data-preset]").forEach((b) => b.addEventListener("click", () => { loadPreset(b.dataset.preset); showError(""); }));
+form.addEventListener("input", () => { $("recourse-btn").disabled = true; });
+
+document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll("nav button").forEach((x) => x.classList.toggle("active", x === b));
+  document.querySelectorAll(".view").forEach((v) => v.classList.toggle("active", v.id === `view-${b.dataset.view}`));
+  if (b.dataset.view === "history") loadHistory();
+}));
+
+async function loadHistory() {
+  const rows = await (await fetch("/decisions?limit=50")).json();
+  $("history").innerHTML = rows.length ? rows.map((r) => `<tr>
+      <td>${new Date(r.timestamp).toLocaleString()}</td><td class="num">${fmt(r.LIMIT_BAL)}</td><td>${statusText(r.PAY_0)}</td>
+      <td>${esc(r.age_band ?? "-")}</td><td class="num">${pct(r.default_probability)}</td>
+      <td><span class="tag cf ${r.decision}" style="border:0;padding:2px 8px">${r.decision}</span></td><td>${r.requires_human_review ? "Yes" : ""}</td></tr>`).join("")
+    : `<tr><td colspan="7" class="empty">No decisions logged yet.</td></tr>`;
+}
+$("refresh-history").addEventListener("click", loadHistory);
+
+async function loadInfo() {
+  const info = await (await fetch("/model-info")).json();
+  $("version").textContent = `Model ${info.model_version} · ${info.policy_version}`;
+  const m = info.metrics, dep = m.deployed_policy_val;
+  const kpi = (label, value, cls = "") => `<div class="kpi"><div class="label">${label}</div><div class="value ${cls}">${value}</div></div>`;
+  $("kpis").innerHTML = kpi("ROC-AUC", m.val_roc_auc[0].toFixed(3)) + kpi("PR-AUC", m.val_pr_auc[0].toFixed(3))
+    + kpi("ECE (calibrated)", m.val_ece_calibrated_oof.toFixed(3)) + kpi("ECE (before calibration)", m.val_ece_uncalibrated.toFixed(3))
+    + kpi("F1 (deployed policy)", dep.f1.toFixed(3)) + kpi("TPR gap (age bands)", dep.tpr_gap.toFixed(3));
+  const g = info.fairness_gates;
+  if (g) {
+    $("gates").innerHTML = kpi(`Performance gate (AUC ≥ ${g.performance_gate.threshold})`, `${g.performance_gate.passed ? "PASS" : "FAIL"} · ${g.performance_gate.roc_auc.toFixed(3)}`, g.performance_gate.passed ? "pass" : "fail")
+      + kpi(`Fairness gate (TPR gap ≤ ${g.fairness_gate.threshold})`, `${g.fairness_gate.passed ? "PASS" : "FAIL"} · ${g.fairness_gate.tpr_gap.toFixed(3)}`, g.fairness_gate.passed ? "pass" : "fail");
+    const tpr = g.fairness_gate.tpr_by_group, excluded = g.fairness_gate.excluded_small_groups || [];
+    const order = ["<25", "25-34", "35-44", "45-54", "55-64", "65+"].filter((k) => k in tpr);
+    $("tpr").innerHTML = order.map((k) => `<div class="shap-row"><span>${esc(k)}${excluded.includes(k) ? ' <span class="hint">(n&lt;30, excluded)</span>' : ""}</span>
+      <div class="shap-track plain"><div class="shap-bar" style="left:0;width:${tpr[k] * 100}%;background:var(--accent);opacity:${excluded.includes(k) ? .35 : 1}"></div></div>
+      <span class="shap-val">${tpr[k].toFixed(3)}</span></div>`).join("");
+  }
+  $("about").innerHTML = [["Notice", info.notice], ["Fairness policy", info.policy_kind], ["Age band required", info.requires_age_band ? "Yes (threshold lookup only)" : "No"],
+    ["Calibration", m.calibration_method], ["Features", info.features.length + " (age and sex excluded)"],
+    ["Training data checksum", `<code>${info.training_data_checksum.slice(0, 16)}…</code>`], ["Built", new Date(info.created_at).toLocaleString()]]
+    .map(([k, v]) => `<tr><th style="width:220px">${k}</th><td>${v}</td></tr>`).join("");
+}
+
+buildFields();
+loadPreset("mixed");
+loadInfo().catch(() => { $("version").textContent = "Could not load model info"; });
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+model,family,roc_auc,pr_auc,f1,tpr_gap,fpr_gap,selection_rate_gap,deployed
+exp_grad_eps0.005,reduction,0.7798,0.5242,0.5349,0.1004,0.0293,0.07,False
+exp_grad_eps0.01,reduction,0.7777,0.5258,0.5325,0.1004,0.0369,0.0755,False
+exp_grad_eps0.02,reduction,0.7826,0.5358,0.5302,0.1042,0.0236,0.0587,False
+exp_grad_eps0.05,reduction,0.7806,0.5293,0.533,0.1213,0.0279,0.0669,False
+threshold_optimizer,post-processing,0.7858,0.5417,0.5415,0.0153,0.0928,0.0801,True
+unconstrained,unconstrained,0.7858,0.5417,0.5438,0.1175,0.0748,0.1113,False

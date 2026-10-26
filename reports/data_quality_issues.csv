@@ -1,0 +1,4 @@
+issue,evidence,remediation
+Undocumented category codes,"EDUCATION in {0,5,6}: 345, MARRIAGE=0: 54","SentinelCleaner: set to NaN + flag, median-impute (fit on train)"
+Balance above credit limit / negative bills,BILL_AMT1/LIMIT_BAL > 1: 2115; BILL_AMT1 < 0: 590,Winsorizer with 1st/99th percentile caps learned on train only
+Small protected subgroup,65+ band n=110 (0.37%),Warn when n<30 per split; report but exclude from gap gate

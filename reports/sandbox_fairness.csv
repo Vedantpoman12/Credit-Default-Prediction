@@ -1,0 +1,9 @@
+attribute,model,auc_mean,auc_std,demographic_parity_gap_mean,demographic_parity_gap_std,tpr_gap_mean,tpr_gap_std,fpr_gap_mean,fpr_gap_std,equalized_odds_gap_mean,equalized_odds_gap_std,equal_opportunity_gap_mean,equal_opportunity_gap_std
+SEX,exp_grad_eps0.01,0.6664,0.0172,0.014,0.0122,0.0538,0.0426,0.015,0.0123,0.0539,0.0425,0.0538,0.0426
+SEX,exp_grad_eps0.05,0.6649,0.0132,0.0201,0.0122,0.0451,0.0452,0.0212,0.011,0.0484,0.0424,0.0451,0.0452
+SEX,threshold_optimizer,0.654,0.0186,0.0256,0.0299,0.0518,0.026,0.0256,0.0318,0.0591,0.0273,0.0518,0.026
+SEX,unconstrained,0.68,0.0217,0.0198,0.0191,0.0457,0.0444,0.0192,0.0192,0.0481,0.0429,0.0457,0.0444
+age_band,exp_grad_eps0.01,0.6782,0.0117,0.3344,0.0865,0.5727,0.1403,0.3308,0.088,0.5746,0.1364,0.5727,0.1403
+age_band,exp_grad_eps0.05,0.6814,0.0161,0.3446,0.1144,0.5404,0.2315,0.3423,0.116,0.5627,0.1799,0.5404,0.2315
+age_band,threshold_optimizer,0.6643,0.0125,0.2885,0.063,0.4565,0.171,0.2895,0.06,0.4592,0.1664,0.4565,0.171
+age_band,unconstrained,0.68,0.0217,0.2265,0.0898,0.4922,0.1928,0.2209,0.093,0.4922,0.1928,0.4922,0.1928

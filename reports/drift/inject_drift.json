@@ -1,0 +1,78 @@
+{
+  "baseline": {
+    "flagged": false,
+    "label_psi": 0.0,
+    "max_feature_psi": 0.0,
+    "top_feature": "LIMIT_BAL",
+    "flagged_features": [],
+    "score_psi": 0.0,
+    "roc_auc": 0.7858125147850524,
+    "tpr_gap": 0.015324858757062132,
+    "default_rate": 0.22111111111111112,
+    "decline_rate": 0.10044444444444445
+  },
+  "income_shift": {
+    "flagged": true,
+    "label_psi": 0.0,
+    "max_feature_psi": 1.2127,
+    "top_feature": "LIMIT_BAL",
+    "flagged_features": [
+      "LIMIT_BAL",
+      "PAY_AMT1",
+      "PAY_AMT2",
+      "PAY_AMT3",
+      "PAY_AMT5",
+      "PAY_AMT4",
+      "PAY_AMT6"
+    ],
+    "score_psi": 0.37102693242374735,
+    "roc_auc": 0.7668523788700994,
+    "tpr_gap": 0.13835470085470092,
+    "default_rate": 0.22111111111111112,
+    "decline_rate": 0.10755555555555556
+  },
+  "base_rate_rise": {
+    "flagged": true,
+    "label_psi": 0.15257175420345637,
+    "max_feature_psi": 0.0279,
+    "top_feature": "PAY_0",
+    "flagged_features": [],
+    "score_psi": 0.03480793482283156,
+    "roc_auc": 0.7819854952807145,
+    "tpr_gap": 0.08455950828832182,
+    "default_rate": 0.3999315185755864,
+    "decline_rate": 0.1510015408320493
+  },
+  "decline_rate_trend": [
+    {
+      "severity": 0.0,
+      "income_shift": 0.10044444444444445,
+      "base_rate_rise": 0.09888888888888889
+    },
+    {
+      "severity": 0.2,
+      "income_shift": 0.10311111111111111,
+      "base_rate_rise": 0.1102629346904156
+    },
+    {
+      "severity": 0.4,
+      "income_shift": 0.10422222222222222,
+      "base_rate_rise": 0.12048435923309789
+    },
+    {
+      "severity": 0.6000000000000001,
+      "income_shift": 0.10711111111111112,
+      "base_rate_rise": 0.13220923548572525
+    },
+    {
+      "severity": 0.8,
+      "income_shift": 0.1068888888888889,
+      "base_rate_rise": 0.14205370101596518
+    },
+    {
+      "severity": 1.0,
+      "income_shift": 0.10755555555555556,
+      "base_rate_rise": 0.1510015408320493
+    }
+  ]
+}

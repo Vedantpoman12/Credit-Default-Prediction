@@ -1,0 +1,15 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: credit-default-fair:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 2g

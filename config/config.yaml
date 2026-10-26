@@ -1,0 +1,54 @@
+seed: 42
+mlflow:
+  tracking_uri: sqlite:///mlflow.db
+  experiment: credit-default
+paths:
+  raw: data/raw
+  processed: data/processed
+  models: models
+  reports: reports
+  figures: reports/figures
+  logs: logs/decisions.jsonl
+primary:
+  file: default_of_credit_card_clients.csv
+  target: default
+  sensitive: AGE
+  audit_only: [AGE, SEX]
+  features: [LIMIT_BAL, EDUCATION, MARRIAGE, PAY_0, PAY_2, PAY_3, PAY_4, PAY_5, PAY_6,
+             BILL_AMT1, BILL_AMT2, BILL_AMT3, BILL_AMT4, BILL_AMT5, BILL_AMT6,
+             PAY_AMT1, PAY_AMT2, PAY_AMT3, PAY_AMT4, PAY_AMT5, PAY_AMT6]
+  sentinels:
+    EDUCATION: [0, 5, 6]
+    MARRIAGE: [0]
+  winsorize: [LIMIT_BAL, BILL_AMT1, BILL_AMT2, BILL_AMT3, BILL_AMT4, BILL_AMT5, BILL_AMT6,
+              PAY_AMT1, PAY_AMT2, PAY_AMT3, PAY_AMT4, PAY_AMT5, PAY_AMT6]
+  winsor_quantiles: [0.01, 0.99]
+sandbox:
+  application: application_record.csv
+  credit: credit_record.csv
+  default_status: ["2", "3", "4", "5"]
+age_bands:
+  edges: [0, 25, 35, 45, 55, 65, 200]
+  labels: ["<25", "25-34", "35-44", "45-54", "55-64", "65+"]
+  valid_range: [18, 100]
+split:
+  train: 0.70
+  val: 0.15
+  test: 0.15
+optuna:
+  n_trials: 25
+  cv_folds: 3
+bootstrap:
+  n_samples: 500
+calibration:
+  ece_bins: 15
+fairness:
+  eps_grid: [0.005, 0.01, 0.02, 0.05]
+  min_group_n: 30
+  max_iter: 50
+policy:
+  refer_low: 0.30
+  refer_high: 0.60
+costs:
+  false_positive: 1.0
+  false_negative: 5.0
