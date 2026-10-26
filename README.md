@@ -49,3 +49,4 @@ Run `make serve` (or the Docker image) and open **http://localhost:8000**:
 - **Model & fairness**: validation metrics, CI gate results and TPR by age band.
 
 See `PROJECT_SUMMARY.txt` for the full walkthrough.
+lovable
