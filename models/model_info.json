@@ -1,10 +1,10 @@
 {
   "notice": "Educational artefact, not for real lending decisions",
-  "model_version": "ed30878f38dc",
+  "model_version": "8ff4c7ac4873",
   "policy_version": "threshold_optimizer-refer0.3-0.6",
   "policy_kind": "threshold_optimizer",
   "requires_age_band": true,
-  "created_at": "2026-10-26T17:57:40.612837+00:00",
+  "created_at": "2026-10-27T02:46:08.272835+00:00",
   "training_data_checksum": "fd3766284e3832f9a06639c741dcd3c320d85a7bc4da8d9f3db8d6ae066b09a2",
   "features": [
     "LIMIT_BAL",
@@ -40,20 +40,20 @@
       0.5086100484608241,
       0.5750822888775683
     ],
-    "val_ece_uncalibrated": 0.20292007959220149,
-    "val_ece_calibrated_oof": 0.011619655109062372,
+    "val_ece_uncalibrated": 0.2037528960473008,
+    "val_ece_calibrated_oof": 0.015468072886268298,
     "calibration_method": "isotonic",
     "deployed_policy_val": {
       "kind": "threshold_optimizer",
-      "roc_auc": 0.7858125147850524,
-      "pr_auc": 0.5416681458157527,
-      "f1": 0.5414884516680923,
-      "ece": 0.0002962989509105684,
-      "demographic_parity_gap": 0.08012488554659941,
-      "tpr_gap": 0.015324858757062132,
-      "fpr_gap": 0.0927748940993974,
-      "equalized_odds_gap": 0.0927748940993974,
-      "equal_opportunity_gap": 0.015324858757062132,
+      "roc_auc": 0.78360016917684,
+      "pr_auc": 0.5412741967809316,
+      "f1": 0.5324232081911263,
+      "ece": 3.325442478465915e-09,
+      "demographic_parity_gap": 0.05382819175579717,
+      "tpr_gap": 0.02854110813226096,
+      "fpr_gap": 0.11657139159134543,
+      "equalized_odds_gap": 0.11657139159134543,
+      "equal_opportunity_gap": 0.02854110813226096,
       "excluded_groups": [
         "65+"
       ]
