@@ -6,10 +6,10 @@
     "top_feature": "LIMIT_BAL",
     "flagged_features": [],
     "score_psi": 0.0,
-    "roc_auc": 0.7827693388483071,
-    "tpr_gap": 0.007478632478632452,
+    "roc_auc": 0.7832737152237652,
+    "tpr_gap": 0.04540598290598297,
     "default_rate": 0.22111111111111112,
-    "decline_rate": 0.09688888888888889
+    "decline_rate": 0.08
   },
   "income_shift": {
     "flagged": true,
@@ -25,11 +25,11 @@
       "PAY_AMT4",
       "PAY_AMT6"
     ],
-    "score_psi": 0.43058004422310453,
-    "roc_auc": 0.7684374798385651,
-    "tpr_gap": 0.07277560092573498,
+    "score_psi": 0.4319163855970205,
+    "roc_auc": 0.7660196847289229,
+    "tpr_gap": 0.07687724845901789,
     "default_rate": 0.22111111111111112,
-    "decline_rate": 0.09422222222222222
+    "decline_rate": 0.09755555555555556
   },
   "base_rate_rise": {
     "flagged": true,
@@ -37,42 +37,42 @@
     "max_feature_psi": 0.0279,
     "top_feature": "PAY_0",
     "flagged_features": [],
-    "score_psi": 0.03586518084596315,
-    "roc_auc": 0.7811868563500284,
-    "tpr_gap": 0.10402309554851918,
+    "score_psi": 0.03384236958725423,
+    "roc_auc": 0.7806528222890978,
+    "tpr_gap": 0.08180826955146014,
     "default_rate": 0.3999315185755864,
-    "decline_rate": 0.14723506248929977
+    "decline_rate": 0.12480739599383667
   },
   "decline_rate_trend": [
     {
       "severity": 0.0,
-      "income_shift": 0.09688888888888889,
-      "base_rate_rise": 0.096
+      "income_shift": 0.08,
+      "base_rate_rise": 0.07977777777777778
     },
     {
       "severity": 0.2,
-      "income_shift": 0.096,
-      "base_rate_rise": 0.1077184054283291
+      "income_shift": 0.08422222222222223,
+      "base_rate_rise": 0.089058524173028
     },
     {
       "severity": 0.4,
-      "income_shift": 0.09577777777777778,
-      "base_rate_rise": 0.11745711402623613
+      "income_shift": 0.08977777777777778,
+      "base_rate_rise": 0.09788092835519677
     },
     {
       "severity": 0.6000000000000001,
-      "income_shift": 0.096,
-      "base_rate_rise": 0.1283770837325158
+      "income_shift": 0.09066666666666667,
+      "base_rate_rise": 0.10806667944050584
     },
     {
       "severity": 0.8,
-      "income_shift": 0.09622222222222222,
-      "base_rate_rise": 0.1386066763425254
+      "income_shift": 0.09444444444444444,
+      "base_rate_rise": 0.11756168359941944
     },
     {
       "severity": 1.0,
-      "income_shift": 0.09422222222222222,
-      "base_rate_rise": 0.14723506248929977
+      "income_shift": 0.09755555555555556,
+      "base_rate_rise": 0.12480739599383667
     }
   ]
 }
