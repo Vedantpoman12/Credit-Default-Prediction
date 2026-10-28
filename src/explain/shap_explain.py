@@ -22,23 +22,25 @@ class ShapExplainer:
         self.prep, self.model = pipe.named_steps["prep"], pipe.named_steps["xgb"]
         self.booster = self.model.get_booster()
 
-    def contributions(self, X: pd.DataFrame) -> tuple[pd.DataFrame, float]:
+    def contributions(self, X: pd.DataFrame) -> tuple[pd.DataFrame, float, pd.DataFrame]:
+        """SHAP per input and engineered feature (sentinel/missing flags folded into their feature), plus their values."""
+        features = self.prep.named_steps["features"].transform(X)
         Xt = self.prep.transform(X)
         contribs = self.booster.predict(xgb.DMatrix(Xt), pred_contribs=True)
         df = pd.DataFrame(contribs[:, :-1], columns=Xt.columns, index=X.index)
-        return df.T.groupby(base_feature).sum().T[X.columns], float(contribs[0, -1])
+        return df.T.groupby(base_feature).sum().T[features.columns], float(contribs[0, -1]), features
 
     def top5_contributions(self, row: pd.DataFrame) -> tuple[list[dict], float]:
         start = time.perf_counter()
-        contribs, _ = self.contributions(row)
+        contribs, _, features = self.contributions(row)
         s = contribs.iloc[0]
         top = s.reindex(s.abs().sort_values(ascending=False).index[:5])
-        out = [{"feature": f, "value": float(row.iloc[0][f]), "shap": round(float(v), 4)} for f, v in top.items()]
+        out = [{"feature": f, "value": round(float(features.iloc[0][f]), 4), "shap": round(float(v), 4)} for f, v in top.items()]
         return out, (time.perf_counter() - start) * 1000
 
     def explanation(self, X: pd.DataFrame) -> shap.Explanation:
-        contribs, base = self.contributions(X)
-        return shap.Explanation(contribs.to_numpy(), base_values=np.full(len(X), base), data=X.to_numpy(), feature_names=list(X.columns))
+        contribs, base, features = self.contributions(X)
+        return shap.Explanation(contribs.to_numpy(), base_values=np.full(len(X), base), data=features.to_numpy(), feature_names=list(features.columns))
 
     def global_summary(self, X: pd.DataFrame) -> list[str]:
         exp = self.explanation(X)
@@ -46,7 +48,7 @@ class ShapExplainer:
         plt.tight_layout(); plt.savefig(FIG / "shap_beeswarm.png", dpi=110); plt.close()
         shap.plots.bar(exp, max_display=15, show=False)
         plt.tight_layout(); plt.savefig(FIG / "shap_bar.png", dpi=110); plt.close()
-        top4 = list(pd.Series(np.abs(exp.values).mean(0), index=X.columns).sort_values(ascending=False).index[:4])
+        top4 = list(pd.Series(np.abs(exp.values).mean(0), index=exp.feature_names).sort_values(ascending=False).index[:4])
         for f in top4:
             shap.plots.scatter(exp[:, f], color=exp, show=False)
             plt.tight_layout(); plt.savefig(FIG / f"shap_dependence_{f}.png", dpi=110); plt.close()

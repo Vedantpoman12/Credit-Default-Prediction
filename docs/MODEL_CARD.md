@@ -4,31 +4,40 @@
 
 | Field | Value |
 |---|---|
-| Version | model ed30878f38dc, policy threshold_optimizer-refer0.3-0.6 |
-| Type | XGBoost (max_depth 5, 341 trees, lr 0.0155, scale_pos_weight 3.52) -> isotonic calibration -> Fairlearn ThresholdOptimizer (TPR parity, age bands) |
+| Version | model 66ab7c6b8c79, policy group_thresholds-refer0.3-0.6 (retrained 2026-10-27) |
+| Type | XGBoost (max_depth 5, 383 trees, lr 0.0134, scale_pos_weight 3.52) -> Platt calibration -> deterministic per-age-band thresholds (equal opportunity) |
+| Tuning | Optuna, 100 trials, stratified 5-fold CV on the training split (CV AUC 0.7904) |
 | Training data | Taiwan credit-card clients, 21,000-row train split (checksum fd376628...) |
-| Features | 21 (no AGE, no SEX) |
+| Features | 21 inputs + 19 engineered (utilisation, paid-vs-bill ratios, months late, worst delay, mean status, utilisation trend, paid-to-billed, headroom); no AGE, no SEX |
 | Intended use | Teaching fairness-aware credit modelling |
 | Out of scope | Any real credit, employment or insurance decision |
 
-**Performance**
-| Metric | Validation | Test (once) |
-|---|---|---|
-| ROC-AUC | 0.7858 [0.7687, 0.8014] | 0.7808 [0.7623, 0.7984] |
-| PR-AUC | 0.5417 | 0.5342 |
-| F1 / precision / recall (deployed flag) | 0.5415 / - / - | 0.5343 / 0.4679 / 0.6225 |
-| ECE | 0.0116 (out-of-fold; 0.2029 before calibration) | 0.0145 |
-| Brier | 0.1362 (out-of-fold) | 0.1350 |
+**Performance (validation)**
+| Metric | Value |
+|---|---|
+| ROC-AUC | 0.7828 [0.7638, 0.7993] |
+| PR-AUC | 0.5598 [0.5275, 0.5939] |
+| F1 (deployed policy) | 0.5307 |
+| ECE | 0.0178 out-of-fold (0.1979 before calibration) |
+| Brier | see reports/calibration.json |
+
+The previous model's raw validation AUC was 0.7801 and its PR-AUC 0.5532, so retraining improved AUC by 0.0027 and PR-AUC by 0.0066.
 
 **Fairness (equal opportunity across age bands, n >= 30)**
-| Model | Val TPR gap | Test TPR gap |
-|---|---|---|
-| Unconstrained | 0.1175 | 0.1896 |
-| ExponentiatedGradient (eps 0.02) | 0.1042 | 0.1190 |
-| ThresholdOptimizer (deployed) | 0.0153 | 0.0519 |
+| Model | Validation TPR gap |
+|---|---|
+| Unconstrained | 0.1077 |
+| ExponentiatedGradient (best, eps 0.005) | 0.0754 |
+| ThresholdOptimizer | 0.0513 |
+| Per-band thresholds (deployed) | 0.0075 (in-sample) |
 
-Test TPR by band: <25 0.629, 25-34 0.638, 35-44 0.593, 45-54 0.645, 55-64 0.605 (65+ n=16, excluded).
+**Test set:** the one-time evaluation (`reports/final_results.json`) belongs to the previous model (test AUC 0.781, ECE 0.014, TPR gap 0.052). It has not been repeated for this model.
 
-**Limitations:** the test TPR gap is 0.0019 above the 0.05 target; the deployed policy needs the age band at serving; SHAP explains the raw score only; the data is a single 2005 Taiwanese bank.
+**Limitations**
+- The validation fairness gap is in-sample.
+- A 0.05 gap cannot be verified on held-out data of this size (55-64 band: 48 validation defaulters).
+- The deployed policy needs the age band at serving.
+- SHAP explains the raw score only, not the calibration or the threshold.
+- The data comes from a single Taiwanese bank in 2005.
 
-**Traceability:** `reports/final_results.json`, `reports/tradeoff_table.csv`, `models/model_info.json`.
+**Traceability:** `reports/validation_metrics.json`, `reports/tradeoff_table.csv`, `reports/calibration.json`, `models/model_info.json`, `metrics/gate_results.json`.

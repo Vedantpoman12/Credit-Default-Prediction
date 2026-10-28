@@ -21,7 +21,8 @@ primary:
     EDUCATION: [0, 5, 6]
     MARRIAGE: [0]
   winsorize: [LIMIT_BAL, BILL_AMT1, BILL_AMT2, BILL_AMT3, BILL_AMT4, BILL_AMT5, BILL_AMT6,
-              PAY_AMT1, PAY_AMT2, PAY_AMT3, PAY_AMT4, PAY_AMT5, PAY_AMT6]
+              PAY_AMT1, PAY_AMT2, PAY_AMT3, PAY_AMT4, PAY_AMT5, PAY_AMT6,
+              UTIL_1, UTIL_2, UTIL_3, UTIL_4, UTIL_5, UTIL_6, UTIL_MEAN, UTIL_MAX, UTIL_TREND, HEADROOM]
   winsor_quantiles: [0.01, 0.99]
 sandbox:
   application: application_record.csv
@@ -36,8 +37,8 @@ split:
   val: 0.15
   test: 0.15
 optuna:
-  n_trials: 25
-  cv_folds: 3
+  n_trials: 100
+  cv_folds: 5
 bootstrap:
   n_samples: 500
 calibration:
@@ -46,6 +47,10 @@ fairness:
   eps_grid: [0.005, 0.01, 0.02, 0.05]
   min_group_n: 30
   max_iter: 50
+monotone:
+  increasing: [PAY_0, PAY_2, PAY_3, PAY_4, PAY_5, PAY_6, MAX_DELAY, MONTHS_LATE, MEAN_STATUS]
+  decreasing: [PAY_AMT1, PAY_AMT2, PAY_AMT3, PAY_AMT4, PAY_AMT5, PAY_AMT6,
+               PAY_RATIO_1, PAY_RATIO_2, PAY_RATIO_3, PAY_RATIO_4, PAY_RATIO_5, PAID_TO_BILLED]
 policy:
   refer_low: 0.30
   refer_high: 0.60

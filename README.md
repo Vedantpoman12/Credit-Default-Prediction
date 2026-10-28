@@ -5,12 +5,17 @@
 Class-weighted XGBoost, tuned with Optuna and isotonic-calibrated, with a Fairlearn equal-opportunity constraint across age bands. Includes SHAP and DiCE explanations, a Dockerised FastAPI service, PSI/Evidently drift monitoring, and CI with a performance gate and a fairness gate.
 
 ## Results
-| Metric | Validation | Test (evaluated once) | Target |
-|---|---|---|---|
-| ROC-AUC | 0.786 [0.769, 0.801] | 0.781 [0.762, 0.798] | >= 0.75 |
-| ECE | 0.012 | 0.014 | <= 0.05 |
-| TPR gap (age bands) | 0.015 | 0.052 | <= 0.05 |
-| Median latency | 10.3 ms | - | <= 50 ms |
+Current model (retrained 2026-10-27: 40 features, Optuna 100 trials x 5-fold, Platt calibration, deterministic per-age-band thresholds):
+
+| Metric | Validation | Target |
+|---|---|---|
+| ROC-AUC | 0.783 [0.764, 0.799] | >= 0.75 |
+| PR-AUC | 0.560 [0.528, 0.594] | - |
+| ECE (out-of-fold) | 0.018 | <= 0.05 |
+| TPR gap (age bands, in-sample) | 0.008 | <= 0.05 |
+| Median latency | 22.8 ms | <= 50 ms |
+
+The one-time test evaluation (`reports/final_results.json`) was run on the previous model and has not been repeated (see `docs/decisions_log.md` #19).
 
 ## Quick start
 ```bash

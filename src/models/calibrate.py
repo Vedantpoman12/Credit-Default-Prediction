@@ -30,7 +30,8 @@ def main() -> None:
         cv = StratifiedKFold(5, shuffle=True, random_state=CFG["seed"])
         probs[f"{method}_oof"] = cross_val_predict(CalibratedClassifierCV(FrozenEstimator(model), method=method), Xv, yv, cv=cv, method="predict_proba")[:, 1]
     results = {k: {"ece": ece(yv, p, bins), "brier": brier_score_loss(yv, p)} for k, p in probs.items()}
-    best = min(calibrated, key=lambda m: results[f"{m}_oof"]["ece"])
+    non_degenerate = [m for m in calibrated if 0 < probs[m].min() and probs[m].max() < 1] or list(calibrated)
+    best = min(non_degenerate, key=lambda m: results[f"{m}_oof"]["ece"])
     joblib.dump(calibrated[best], path("models") / "calibrated_model.joblib")
 
     fig, ax = plt.subplots(figsize=(6, 6))

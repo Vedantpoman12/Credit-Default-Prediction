@@ -19,7 +19,7 @@ def main() -> None:
     rows = []
     for f in sorted(CANDIDATES.glob("*.joblib")):
         r = evaluate_policy(joblib.load(f), Xv, yv, sv)
-        rows.append({"model": f.stem, "family": {"unconstrained": "unconstrained", "exponentiated_gradient": "reduction", "threshold_optimizer": "post-processing"}[r["kind"]],
+        rows.append({"model": f.stem, "family": {"unconstrained": "unconstrained", "exponentiated_gradient": "reduction", "threshold_optimizer": "post-processing", "group_thresholds": "post-processing"}[r["kind"]],
                      "roc_auc": r["roc_auc"], "pr_auc": r["pr_auc"], "f1": r["f1"], "tpr_gap": r["tpr_gap"], "fpr_gap": r["fpr_gap"],
                      "selection_rate_gap": r["demographic_parity_gap"]})
     table = pd.DataFrame(rows).round(4)

@@ -62,3 +62,8 @@ def test_gui_and_decisions(client):
     client.post("/score", json=SAMPLE)
     rows = client.get("/decisions?limit=5").json()
     assert 1 <= len(rows) <= 5 and "decision" in rows[0]
+
+
+def test_static_font_served(client):
+    r = client.get("/static/fonts/manrope-latin-wght-normal.woff2")
+    assert r.status_code == 200 and r.content[:4] == b"wOF2"

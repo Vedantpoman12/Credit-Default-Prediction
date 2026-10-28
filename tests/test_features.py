@@ -5,7 +5,7 @@ from src.config import CFG
 import pytest
 
 from src.data.split import load_split, verify_checksums
-from src.features.pipeline import SentinelCleaner, Winsorizer, build_pipeline
+from src.features.pipeline import FeatureBuilder, SentinelCleaner, Winsorizer, build_pipeline
 
 
 def _sample() -> pd.DataFrame:
@@ -56,3 +56,16 @@ def test_checksums_match_and_test_split_is_locked():
     verify_checksums("val")
     with pytest.raises(PermissionError):
         load_split("test")
+
+
+def test_feature_builder_is_bounded_and_stateless():
+    X = _sample()
+    edge = X.head(3).copy()
+    edge[["BILL_AMT2", "BILL_AMT3", "BILL_AMT4", "BILL_AMT5", "BILL_AMT6"]] = [0, -500, 0, 0, 0]
+    out = FeatureBuilder().transform(pd.concat([X, edge]))
+    engineered = [c for c in out.columns if c not in X.columns]
+    assert len(engineered) == 19
+    assert np.isfinite(out[engineered].to_numpy()).all()
+    assert out.filter(like="PAY_RATIO").stack().between(0, 5).all() and out["PAID_TO_BILLED"].between(0, 5).all()
+    assert out["MONTHS_LATE"].between(0, 6).all()
+    pd.testing.assert_frame_equal(FeatureBuilder().transform(X.head(5)), FeatureBuilder().fit(X).transform(X.head(5)))

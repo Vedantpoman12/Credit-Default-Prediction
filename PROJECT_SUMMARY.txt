@@ -173,12 +173,12 @@ STEP 8 - One-time test evaluation and presentation
 
 5. FINAL RESULTS VS TARGETS
 ---------------------------
-                       Validation        Test (once)        Target
-  ROC-AUC              0.786             0.781 [0.762,0.798] >= 0.75   PASS
-  ECE                  0.012             0.014               <= 0.05   PASS
-  TPR gap (age bands)  0.015             0.052               <= 0.05   val PASS / test just over
-  Median latency       10.3 ms           -                   <= 50 ms  PASS
-  Unconstrained test TPR gap 0.190 vs EG 0.119 vs deployed ThresholdOptimizer 0.052.
+  Current model (retrained 2026-10-27, see section 8), validation split:
+    ROC-AUC 0.783 [0.764, 0.799] (>= 0.75 PASS), PR-AUC 0.560,
+    ECE 0.018 out-of-fold (<= 0.05 PASS), TPR gap 0.008 in-sample (<= 0.05 PASS),
+    median latency 22.8 ms (<= 50 ms PASS).
+  Previous model (one-time test run, 2026-10-26, NOT repeated for the new model):
+    test ROC-AUC 0.781 [0.762, 0.798], ECE 0.014, TPR gap 0.052.
 
 
 6. NOTES AND DEVIATIONS
@@ -201,3 +201,33 @@ STEP 8 - One-time test evaluation and presentation
   make serve        # GUI at http://localhost:8000, API docs at /docs
   make latency && make drift
   make final        # test set, one time only
+
+
+8. RETRAINING (2026-10-27)
+--------------------------
+  What changed
+    src/features/pipeline.py   FeatureBuilder (first pipeline step, stateless):
+                               UTIL_1-6, PAY_RATIO_1-5, UTIL_MEAN/MAX/TREND,
+                               MONTHS_LATE, MAX_DELAY, MEAN_STATUS,
+                               PAID_TO_BILLED, HEADROOM (21 -> 40 features)
+    config/config.yaml         Optuna 100 trials x 5-fold; utilisation
+                               features winsorised
+    src/models/train_xgb.py    early stopping 100 rounds, up to 2,000 trees
+    src/models/calibrate.py    never selects a calibrator that outputs 0 or 1
+                               -> Platt scaling
+    src/fairness/policy.py     GroupThresholds: deterministic equal-opportunity
+                               thresholds per age band (deployed)
+    src/explain/shap_explain.py  SHAP reports engineered features by name
+    src/explain/recourse_dice.py returns "no actionable change" instead of
+                               crashing when DiCE finds nothing
+  Effect (raw model scores, same validation rows)
+    before: CV AUC 0.7850, val AUC 0.7801, PR-AUC 0.5532
+    after:  CV AUC 0.7904, val AUC 0.7828, PR-AUC 0.5598
+  Why the fairness policy changed
+    ThresholdOptimizer's validation gap was entirely random-draw noise
+    (expected gap 0.000) and 9-29% of defaulters got coin-flip decisions.
+    Deterministic per-band thresholds remove that. The validation gap is
+    in-sample; the 55-64 band has too few defaulters (48) to verify a 0.05
+    gap on held-out data.
+  Not done
+    The test set was not re-evaluated (lock file kept).

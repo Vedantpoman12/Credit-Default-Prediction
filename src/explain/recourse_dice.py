@@ -1,6 +1,7 @@
 import warnings
 
 import dice_ml
+from raiutils.exceptions import UserConfigValidationException
 import joblib
 import numpy as np
 import pandas as pd
@@ -51,9 +52,12 @@ def recourse(applicant: pd.DataFrame, reference: pd.DataFrame, policy=None, n: i
     m = dice_ml.Model(model=model, backend="sklearn")
     exp = dice_ml.Dice(d, m, method="random")
     query = applicant[FEATURES + IMMUTABLE].astype(float)
-    res = exp.generate_counterfactuals(query, total_CFs=n, desired_class=0, features_to_vary=ACTIONABLE,
-                                       permitted_range=permitted_ranges(query.iloc[0]), random_seed=CFG["seed"])
-    cfs = res.cf_examples_list[0].final_cfs_df
+    try:
+        res = exp.generate_counterfactuals(query, total_CFs=n, desired_class=0, features_to_vary=ACTIONABLE,
+                                           permitted_range=permitted_ranges(query.iloc[0]), random_seed=CFG["seed"])
+        cfs = res.cf_examples_list[0].final_cfs_df
+    except UserConfigValidationException:
+        cfs = None
     if cfs is None or cfs.empty:
         return {"original_decision": model.decisions(query)[0], "counterfactuals": [], "message": "No actionable change found."}
     cfs = cfs.drop(columns="outcome").round(0)
@@ -76,7 +80,8 @@ def main() -> None:
     full = Xv.join(sv[IMMUTABLE])
     model = PolicyModel(joblib.load(path("models") / "policy.joblib"))
     dec = pd.Series(model.decisions(full), index=full.index)
-    applicant = full.loc[[dec[dec == "decline"].index[0]]]
+    only_latest_late = (full["PAY_0"] > 0) & (full[["PAY_2", "PAY_3", "PAY_4", "PAY_5", "PAY_6"]] <= 0).all(axis=1)
+    applicant = full.loc[[dec[(dec == "decline") & only_latest_late].index[0]]]
     result = recourse(applicant, full.sample(2000, random_state=CFG["seed"]))
     print("original:", result["original_decision"])
     for c in result["counterfactuals"]:

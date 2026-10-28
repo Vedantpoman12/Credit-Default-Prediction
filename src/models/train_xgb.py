@@ -9,7 +9,7 @@ from xgboost import XGBClassifier
 
 from src.config import CFG, path
 from src.data.split import load_split
-from src.features.pipeline import build_pipeline
+from src.features.pipeline import build_pipeline, monotone_constraints
 from src.models.train_baselines import setup_mlflow
 
 SEED = CFG["seed"]
@@ -43,7 +43,7 @@ def main() -> None:
         for tr, va in folds:
             prep = build_pipeline().fit(X.iloc[tr])
             Xtr, Xva = prep.transform(X.iloc[tr]), prep.transform(X.iloc[va])
-            m = make_xgb(params, spw, n_estimators=1000, early_stopping_rounds=50).fit(Xtr, y.iloc[tr], eval_set=[(Xva, y.iloc[va])], verbose=False)
+            m = make_xgb(params, spw, n_estimators=2000, early_stopping_rounds=100, monotone_constraints=monotone_constraints(Xtr.columns)).fit(Xtr, y.iloc[tr], eval_set=[(Xva, y.iloc[va])], verbose=False)
             aucs.append(roc_auc_score(y.iloc[va], m.predict_proba(Xva)[:, 1]))
             iters.append(m.best_iteration + 1)
         trial.set_user_attr("n_estimators", int(np.mean(iters)))
@@ -53,7 +53,8 @@ def main() -> None:
     study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=SEED))
     study.optimize(objective, n_trials=CFG["optuna"]["n_trials"])
     best = dict(study.best_params, n_estimators=study.best_trial.user_attrs["n_estimators"])
-    model = Pipeline([("prep", build_pipeline()), ("xgb", make_xgb(best, spw))]).fit(X, y)
+    columns = build_pipeline().fit(X).transform(X.head(1)).columns
+    model = Pipeline([("prep", build_pipeline()), ("xgb", make_xgb(best, spw, monotone_constraints=monotone_constraints(columns)))]).fit(X, y)
     joblib.dump({"params": best, "scale_pos_weight": spw}, path("models") / "xgb_params.joblib")
     joblib.dump(model, path("models") / "xgb_pipeline.joblib")
     with mlflow.start_run(run_name="xgboost_optuna"):

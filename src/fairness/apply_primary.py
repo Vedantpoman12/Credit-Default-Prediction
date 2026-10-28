@@ -13,7 +13,7 @@ from sklearn.metrics import average_precision_score, f1_score, roc_auc_score
 from src.config import CFG, path
 from src.data.split import load_split
 from src.fairness.metrics import fairness_report
-from src.fairness.policy import FairPolicy, XGBPipelineClassifier
+from src.fairness.policy import FairPolicy, GroupThresholds, XGBPipelineClassifier
 from src.models.metrics import ece
 
 CANDIDATES = path("models") / "candidates"
@@ -46,6 +46,8 @@ def build_candidates(X, y, sens, Xv, yv, sv) -> dict[str, FairPolicy]:
                             prefit=True, predict_method="predict_proba")
     to.fit(Xv, yv, sensitive_features=sv["age_band"])
     out["threshold_optimizer"] = FairPolicy("threshold_optimizer", calibrated, mitigator=to)
+    gt = GroupThresholds(raw, CFG["fairness"]["min_group_n"]).fit(Xv, yv, sv["age_band"], global_threshold=0.5)
+    out["group_thresholds"] = FairPolicy("group_thresholds", calibrated, mitigator=gt)
     return out
 
 
@@ -55,7 +57,7 @@ def select(results: dict[str, dict], skip_mitigation: bool) -> str:
     eg = {k: r for k, r in results.items() if k.startswith("exp_grad") and r["tpr_gap"] <= MAX_GAP}
     if eg:
         return max(eg, key=lambda k: eg[k]["roc_auc"])
-    return "threshold_optimizer"
+    return "group_thresholds"
 
 
 def main() -> None:

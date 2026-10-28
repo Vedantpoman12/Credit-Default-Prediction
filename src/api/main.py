@@ -7,6 +7,7 @@ import joblib
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from src.api.policy import decide
 from src.api.schemas import RecourseResponse, ScoreRequest, ScoreResponse
@@ -38,6 +39,7 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+app.mount("/static", StaticFiles(directory=GUI.parent), name="static")
 
 
 def _frame(req: ScoreRequest) -> pd.DataFrame:

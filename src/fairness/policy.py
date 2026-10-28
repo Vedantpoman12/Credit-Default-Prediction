@@ -8,7 +8,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.isotonic import IsotonicRegression
 from xgboost import XGBClassifier
 
-from src.features.pipeline import build_pipeline
+from src.features.pipeline import build_pipeline, monotone_constraints
 
 warnings.filterwarnings("ignore", category=FutureWarning, module="fairlearn")
 
@@ -22,7 +22,8 @@ class XGBPipelineClassifier(BaseEstimator, ClassifierMixin):
 
     def fit(self, X: pd.DataFrame, y, sample_weight=None):
         self.prep_ = build_pipeline().fit(X)
-        self.model_ = XGBClassifier(**(self.params or {}), tree_method="hist", random_state=self.seed, n_jobs=4)
+        self.model_ = XGBClassifier(**(self.params or {}), tree_method="hist", random_state=self.seed, n_jobs=4,
+                                    monotone_constraints=monotone_constraints(self.prep_.transform(X.head(1)).columns))
         self.model_.fit(self.prep_.transform(X), y, sample_weight=sample_weight)
         self.classes_ = self.model_.classes_
         return self
@@ -39,6 +40,33 @@ def row_uniform(X: pd.DataFrame) -> np.ndarray:
     return pd.util.hash_pandas_object(X.astype(float).round(6), index=False).to_numpy() / np.float64(2**64)
 
 
+class GroupThresholds:
+    """Deterministic equal-opportunity post-processing: one score threshold per group so every group reaches the same TPR."""
+
+    def __init__(self, model, min_group_n: int = 30):
+        self.model = model
+        self.min_group_n = min_group_n
+
+    def score(self, X: pd.DataFrame) -> np.ndarray:
+        return self.model.predict_proba(X)[:, 1]
+
+    def fit(self, X: pd.DataFrame, y, sensitive, global_threshold: float):
+        s, y, g = self.score(X), np.asarray(y), np.asarray(sensitive)
+        self.default_ = float(global_threshold)
+        self.target_tpr_ = float((s[y == 1] >= self.default_).mean())
+        self.thresholds_ = {}
+        for group in np.unique(g):
+            pos = np.sort(s[(g == group) & (y == 1)])
+            if (g == group).sum() >= self.min_group_n and len(pos):
+                k = int(round((1 - self.target_tpr_) * len(pos)))
+                self.thresholds_[group] = float(pos[min(k, len(pos) - 1)])
+        return self
+
+    def predict(self, X: pd.DataFrame, sensitive) -> np.ndarray:
+        t = np.array([self.thresholds_.get(g, self.default_) for g in np.asarray(sensitive)])
+        return (self.score(X) >= t).astype(int)
+
+
 class FairPolicy:
     """Single loadable decision policy: calibrated probability + deterministic fairness-constrained flag."""
 
@@ -51,7 +79,7 @@ class FairPolicy:
 
     @property
     def needs_sensitive(self) -> bool:
-        return isinstance(self.mitigator, ThresholdOptimizer)
+        return isinstance(self.mitigator, (ThresholdOptimizer, GroupThresholds))
 
     def mixture_score(self, X: pd.DataFrame) -> np.ndarray:
         eg: ExponentiatedGradient = self.mitigator
@@ -72,4 +100,6 @@ class FairPolicy:
     def flag(self, X: pd.DataFrame, sensitive=None) -> np.ndarray:
         if self.kind == "unconstrained":
             return (self.predict_proba(X) >= self.threshold).astype(int)
+        if self.kind == "group_thresholds":
+            return self.mitigator.predict(X, sensitive)
         return (row_uniform(X) < self.decision_score(X, sensitive)).astype(int)
