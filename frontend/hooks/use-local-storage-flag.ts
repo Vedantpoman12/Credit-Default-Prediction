@@ -35,10 +35,3 @@ export function useLocalStorageFlag(key: string): [boolean, (value: boolean) => 
   )
   return [value, set]
 }
-
-const noop = () => () => {}
-
-/** True only after hydration, without a state update in an effect. */
-export function useHydrated(): boolean {
-  return useSyncExternalStore(noop, () => true, () => false)
-}

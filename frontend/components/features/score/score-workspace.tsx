@@ -25,6 +25,7 @@ export function ScoreWorkspace() {
   const [scoring, startScoring] = useTransition()
   const [searching, startSearching] = useTransition()
   const stale = result !== null && result.key !== JSON.stringify(values)
+  const activePreset = PRESETS.find((preset) => Object.entries(preset.values).every(([key, value]) => values[key as keyof Applicant] === value))?.id ?? null
 
   const submit = (applicant: Applicant) =>
     startScoring(async () => {
@@ -48,9 +49,9 @@ export function ScoreWorkspace() {
   }
 
   return (
-    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-      <ApplicantForm form={form} onSubmit={submit} pending={scoring} onPreset={(preset) => form.reset(preset)} />
-      <div className="lg:sticky lg:top-[calc(var(--topbar-height)+1.5rem)]">
+    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,23.75rem)]">
+      <ApplicantForm form={form} onSubmit={submit} pending={scoring} activePreset={activePreset} onPreset={(preset) => form.reset(preset)} />
+      <div className="rounded-card lg:sticky lg:top-[calc(var(--topbar-height)+1.5rem)] lg:max-h-[calc(100dvh_-_var(--topbar-height)_-_3rem)] lg:overflow-y-auto lg:overscroll-contain lg:[scrollbar-width:thin]">
         <ResultPanel result={result?.data ?? null} pending={scoring} stale={stale} onRecourse={openRecourse} />
       </div>
       <RecourseDialog open={recourseOpen} onOpenChange={setRecourseOpen} recourse={recourse} loading={searching} />

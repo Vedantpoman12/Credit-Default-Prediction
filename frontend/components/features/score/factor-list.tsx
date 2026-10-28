@@ -24,7 +24,7 @@ export function FactorList({ factors, compact = false }: { factors: Contribution
                 <p className="truncate font-medium">{featureLabel(factor.feature)}</p>
                 <p className="truncate text-xs text-muted-foreground tabular-nums">{featureValueText(factor.feature, factor.value)}</p>
               </div>
-              <div className="relative h-2 rounded-full bg-track" aria-hidden>
+              <div className="relative h-1.5 rounded-full bg-track" aria-hidden>
                 <span className="absolute -inset-y-1 left-1/2 w-px bg-track-strong" />
                 <motion.span
                   className={cn("absolute inset-y-0 rounded-full", raises ? "bg-track-strong" : "bg-primary")}

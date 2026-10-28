@@ -4,8 +4,6 @@ import { Search } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, type FormEvent } from "react"
 
-import { Input } from "@/components/ui/input"
-
 export function GlobalSearch() {
   const router = useRouter()
   const input = useRef<HTMLInputElement>(null)
@@ -29,13 +27,20 @@ export function GlobalSearch() {
   }
 
   return (
-    <form role="search" onSubmit={submit} className="relative w-full max-w-sm">
+    <form role="search" onSubmit={submit} className="relative w-full max-w-md">
       <label htmlFor="global-search" className="sr-only">
         Search decisions
       </label>
-      <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-      <Input id="global-search" ref={input} type="search" placeholder="Search decisions…" className="h-9 bg-card pr-10 pl-9 shadow-xs" enterKeyHint="search" />
-      <kbd className="pointer-events-none absolute top-1/2 right-2.5 hidden -translate-y-1/2 rounded border bg-muted px-1.5 font-mono text-[10px] text-muted-foreground sm:block">
+      <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+      <input
+        id="global-search"
+        ref={input}
+        type="search"
+        enterKeyHint="search"
+        placeholder="Search decisions…"
+        className="h-10 w-full rounded-full border border-input bg-background pr-11 pl-10 text-sm shadow-xs transition-[border-color,box-shadow,background-color] outline-none placeholder:text-muted-foreground hover:border-track-strong/70 focus-visible:border-primary focus-visible:bg-card focus-visible:ring-3 focus-visible:ring-primary/15 [&::-webkit-search-cancel-button]:hidden"
+      />
+      <kbd className="pointer-events-none absolute top-1/2 right-3 hidden h-5 min-w-5 -translate-y-1/2 items-center justify-center rounded-md border bg-card px-1.5 font-mono text-[11px] text-muted-foreground sm:flex">
         /
       </kbd>
     </form>

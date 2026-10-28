@@ -16,7 +16,7 @@ export function ProbabilityMeter({ probability }: { probability: number }) {
   return (
     <div>
       <div
-        className="relative flex h-2 gap-1"
+        className="relative flex h-2.5 gap-1"
         role="meter"
         aria-label="Default risk"
         aria-valuemin={0}
@@ -33,7 +33,7 @@ export function ProbabilityMeter({ probability }: { probability: number }) {
           animate={{ x: `${p * 100}%` }}
           transition={{ type: "spring", stiffness: 120, damping: 20 }}
         >
-          <span className="absolute top-1/2 left-0 h-4.5 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground ring-2 ring-card" />
+          <span className="absolute top-1/2 left-0 h-5 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground ring-2 ring-card" />
         </motion.div>
       </div>
       <div className="mt-2 flex text-[11px] text-muted-foreground">
