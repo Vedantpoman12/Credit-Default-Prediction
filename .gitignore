@@ -1,12 +1,17 @@
 venv/
+.venv/
 __pycache__/
 *.pyc
 .pytest_cache/
 .ipynb_checkpoints/
 .env
-data/raw/*.csv
-data/raw/*.xls
-data/processed/test*.parquet
+.env.*
+# Datasets stay local; only checksums are committed
+data/**/*.csv
+data/**/*.xls
+data/**/*.xlsx
+data/**/*.parquet
+data/splits/
 models/candidates/exp_grad*
 mlruns/
 mlflow.db*
