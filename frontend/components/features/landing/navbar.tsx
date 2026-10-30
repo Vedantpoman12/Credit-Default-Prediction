@@ -10,9 +10,9 @@ import { Logo } from "@/components/features/layout/logo"
 import { cn } from "@/lib/utils"
 
 const LINKS = [
-  { href: "#features", label: "Features" },
-  { href: "#how-it-works", label: "How it works" },
-  { href: "#fairness", label: "Fairness" },
+  { href: "/#features", label: "Features" },
+  { href: "/#how-it-works", label: "How it works" },
+  { href: "/#fairness", label: "Fairness" },
 ]
 
 export function Navbar() {
@@ -28,9 +28,9 @@ export function Navbar() {
         <ul className="ml-4 hidden items-center gap-1 md:flex">
           {LINKS.map((link) => (
             <li key={link.href}>
-              <a href={link.href} className="rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+              <Link href={link.href} className="rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
                 {link.label}
-              </a>
+              </Link>
             </li>
           ))}
         </ul>
@@ -58,9 +58,9 @@ export function Navbar() {
           >
             <div className="space-y-1 px-4 py-4">
               {LINKS.map((link) => (
-                <a key={link.href} href={link.href} onClick={() => setOpen(false)} className="block rounded-md px-3 py-2.5 text-sm font-medium hover:bg-muted">
+                <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className="block rounded-md px-3 py-2.5 text-sm font-medium hover:bg-muted">
                   {link.label}
-                </a>
+                </Link>
               ))}
               <div className="grid grid-cols-2 gap-2 pt-3">
                 <Button asChild variant="outline" size="lg" className="h-10">
