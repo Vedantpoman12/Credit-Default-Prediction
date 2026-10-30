@@ -1,11 +1,13 @@
 import { ArrowRight, Check } from "lucide-react"
 import type { Metadata } from "next"
 import Link from "next/link"
+import { Suspense } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { DotGrid } from "@/components/features/auth/auth-backdrop"
 import { FEATURES, STEPS } from "@/components/features/landing/content"
+import { FairnessChart, FairnessChartSkeleton } from "@/components/features/landing/fairness-chart"
 import { HeroPreview } from "@/components/features/landing/hero-preview"
 import { HoverCard, Reveal } from "@/components/features/landing/reveal"
 
@@ -122,24 +124,9 @@ export default function LandingPage() {
           <Reveal delay={0.1}>
             <Card className="p-6 shadow-card">
               <p className="text-sm font-semibold">Defaulters caught, by age band</p>
-              <p className="mt-1 text-xs text-muted-foreground">Illustration of equal opportunity: bars stay level.</p>
-              <div className="mt-6 space-y-3" aria-hidden>
-                {[
-                  ["<25", 62],
-                  ["25–34", 61],
-                  ["35–44", 62],
-                  ["45–54", 62],
-                  ["55–64", 60],
-                ].map(([band, value]) => (
-                  <div key={band} className="grid grid-cols-[3.5rem_1fr_2.5rem] items-center gap-3 text-sm">
-                    <span className="text-muted-foreground tabular-nums">{band}</span>
-                    <span className="h-2.5 rounded-full bg-track">
-                      <span className="block h-full rounded-full bg-primary" style={{ width: `${value}%` }} />
-                    </span>
-                    <span className="text-right font-medium tabular-nums">{value}%</span>
-                  </div>
-                ))}
-              </div>
+              <Suspense fallback={<FairnessChartSkeleton />}>
+                <FairnessChart />
+              </Suspense>
             </Card>
           </Reveal>
         </div>
