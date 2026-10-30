@@ -17,3 +17,5 @@ mlruns/
 mlflow.db*
 logs/
 metrics/
+# Applicant rows from the validation set
+reports/error_cases.csv
