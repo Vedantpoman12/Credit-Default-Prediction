@@ -1,6 +1,6 @@
 # Credit Default Prediction with Fairness Constraints
 
-> **⚠ NOT FOR REAL LENDING. Educational artefact (BTECH CAP 501), not for real lending decisions.**
+> **⚠ NOT FOR REAL LENDING. Educational artefact, not for real lending decisions.**
 
 Class-weighted XGBoost, tuned with Optuna and isotonic-calibrated, with a Fairlearn equal-opportunity constraint across age bands. Includes SHAP and DiCE explanations, a Dockerised FastAPI service, PSI/Evidently drift monitoring, and CI with a performance gate and a fairness gate.
 
