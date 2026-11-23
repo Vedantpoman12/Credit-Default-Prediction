@@ -14,6 +14,7 @@ from src.api.schemas import RecourseResponse, ScoreRequest, ScoreResponse
 from src.config import CFG, path
 from src.explain.recourse_dice import recourse
 from src.explain.shap_explain import ShapExplainer
+from src.fairness.policy import same_prep
 
 FEATURES = CFG["primary"]["features"]
 AGE_FOR_BAND = {"<25": 22, "25-34": 30, "35-44": 40, "45-54": 50, "55-64": 60, "65+": 70}
@@ -26,6 +27,9 @@ async def lifespan(app: FastAPI):
     models = path("models")
     state["policy"] = joblib.load(models / "policy.joblib")
     state["explainer"] = ShapExplainer()
+    # Reuse the explainer's transformed matrix for the policy when both were fitted identically.
+    shared = getattr(state["policy"], "shared_prep", None) if state["policy"].kind == "exponentiated_gradient" else None
+    state["share_transform"] = shared is not None and same_prep(shared, state["explainer"].prep)
     state["info"] = json.loads((models / "model_info.json").read_text())
     state["reference"] = pd.read_parquet(models / "dice_reference.parquet")
     path("logs").parent.mkdir(parents=True, exist_ok=True)
@@ -58,11 +62,12 @@ def _log(req: ScoreRequest, resp: ScoreResponse) -> None:
 @app.post("/score", response_model=ScoreResponse)
 def score(req: ScoreRequest) -> ScoreResponse:
     X = _frame(req)
-    policy, info = state["policy"], state["info"]
-    p = float(policy.predict_proba(X)[0])
-    flag = int(policy.flag(X, [req.age_band])[0])
+    policy, info, explainer = state["policy"], state["info"], state["explainer"]
+    prepared = explainer.prepare(X)
+    probs, flags = policy.score(X, [req.age_band], Xt=prepared[1] if state["share_transform"] else None)
+    p, flag = float(probs[0]), int(flags[0])
     band, decision, review = decide(p, flag)
-    top5, _ = state["explainer"].top5_contributions(X)
+    top5, _ = explainer.top5_contributions(X, prepared)
     resp = ScoreResponse(default_probability=round(p, 4), band=band, decision=decision, requires_human_review=review,
                          top5_shap=top5, model_version=info["model_version"], policy_version=info["policy_version"])
     _log(req, resp)

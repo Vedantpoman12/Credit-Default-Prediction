@@ -81,10 +81,47 @@ class FairPolicy:
     def needs_sensitive(self) -> bool:
         return isinstance(self.mitigator, (ThresholdOptimizer, GroupThresholds))
 
-    def mixture_score(self, X: pd.DataFrame) -> np.ndarray:
+    # --- ExponentiatedGradient fast path -------------------------------------------------------
+    # Every EG member is fitted on the same training X (only labels/weights differ), so their
+    # preprocessing pipelines are identical. Transforming once and reusing the matrix gives the
+    # same numbers as calling each member separately, at a fraction of the cost.
+    def _live_members(self) -> list[tuple[XGBPipelineClassifier, float]]:
         eg: ExponentiatedGradient = self.mitigator
-        return sum(w * eg.predictors_[i].predict_proba(X)[:, 1] for i, w in eg.weights_.items() if w > 0)
+        return [(eg.predictors_[i], w) for i, w in eg.weights_.items() if w > 0]
 
+    @property
+    def shared_prep(self):
+        """The members' common fitted preprocessing pipeline, or None if they differ."""
+        if "_shared_prep" not in self.__dict__:
+            members = [m for m, _ in self._live_members()]
+            first = members[0].prep_
+            self.__dict__["_shared_prep"] = first if all(same_prep(first, m.prep_) for m in members[1:]) else None
+        return self.__dict__["_shared_prep"]
+
+    def _member_probs(self, X: pd.DataFrame, Xt: pd.DataFrame | None = None) -> list[tuple[np.ndarray, float]]:
+        members = self._live_members()
+        if Xt is None and self.shared_prep is not None:
+            Xt = self.shared_prep.transform(X)
+        if Xt is None:
+            return [(m.predict_proba(X)[:, 1], w) for m, w in members]
+        return [(m.model_.predict_proba(Xt)[:, 1], w) for m, w in members]
+
+    def mixture_score(self, X: pd.DataFrame, Xt: pd.DataFrame | None = None) -> np.ndarray:
+        return sum(w * p for p, w in self._member_probs(X, Xt))
+
+    def score(self, X: pd.DataFrame, sensitive=None, Xt: pd.DataFrame | None = None) -> tuple[np.ndarray, np.ndarray]:
+        """Calibrated probability and fairness flag in one pass (what the API needs per request).
+
+        Xt, if given, must be X transformed by a pipeline equal to `shared_prep` (see same_prep)."""
+        if self.kind != "exponentiated_gradient":
+            return self.predict_proba(X), self.flag(X, sensitive)
+        probs = self._member_probs(X, Xt)
+        proba = self.mixture_calibrator.predict(sum(w * p for p, w in probs))
+        # Fairlearn's _pmf_predict = sum of w * member.predict(X), and member.predict is proba >= 0.5
+        pmf = sum(w * (p >= 0.5).astype(float) for p, w in probs)
+        return proba, (row_uniform(X) < pmf).astype(int)
+
+    # --- generic interface -------------------------------------------------------------------
     def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
         if self.kind == "exponentiated_gradient":
             return self.mixture_calibrator.predict(self.mixture_score(X))
@@ -92,7 +129,7 @@ class FairPolicy:
 
     def decision_score(self, X: pd.DataFrame, sensitive=None) -> np.ndarray:
         if self.kind == "exponentiated_gradient":
-            return self.mitigator._pmf_predict(X)[:, 1]
+            return sum(w * (p >= 0.5).astype(float) for p, w in self._member_probs(X))
         if self.kind == "threshold_optimizer":
             return self.mitigator._pmf_predict(X, sensitive_features=np.asarray(sensitive))[:, 1]
         return self.predict_proba(X)
@@ -103,3 +140,16 @@ class FairPolicy:
         if self.kind == "group_thresholds":
             return self.mitigator.predict(X, sensitive)
         return (row_uniform(X) < self.decision_score(X, sensitive)).astype(int)
+
+
+def same_prep(a, b) -> bool:
+    """True if two fitted build_pipeline() objects transform identically (same steps and fitted values)."""
+    try:
+        wa, wb, ia, ib = a.named_steps["winsor"], b.named_steps["winsor"], a.named_steps["impute"], b.named_steps["impute"]
+        return ([n for n, _ in a.steps] == [n for n, _ in b.steps]
+                and a.named_steps["sentinels"].sentinels == b.named_steps["sentinels"].sentinels
+                and tuple(a.named_steps["age"].valid_range) == tuple(b.named_steps["age"].valid_range)
+                and wa.lower_.equals(wb.lower_) and wa.upper_.equals(wb.upper_)
+                and ia.medians_.equals(ib.medians_) and ia.indicator_cols_ == ib.indicator_cols_)
+    except (AttributeError, KeyError):
+        return False
