@@ -1,0 +1,66 @@
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-and-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y libgomp1
+          pip install -r requirements.txt
+      - name: Unit tests
+        run: pytest -q tests
+      - name: Performance gate
+        run: python -m scripts.evaluate_gates --gate performance
+      - name: Fairness gate
+        run: python -m scripts.evaluate_gates --gate fairness
+      - name: Upload gate results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate_results
+          path: metrics/gate_results.json
+
+  docker:
+    needs: test-and-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          tags: credit-default-fair:ci
+          load: true
+      - name: Smoke-test the container
+        run: |
+          docker run -d --name api --cpus=4 -p 8000:8000 credit-default-fair:ci
+          for i in $(seq 1 60); do curl -fs http://localhost:8000/health && break; sleep 2; done
+          curl -fs http://localhost:8000/health
+          curl -fs -X POST http://localhost:8000/score -H 'Content-Type: application/json' -d '{"LIMIT_BAL":50000,"EDUCATION":2,"MARRIAGE":1,"PAY_0":2,"PAY_2":2,"PAY_3":0,"PAY_4":0,"PAY_5":0,"PAY_6":0,"BILL_AMT1":46990,"BILL_AMT2":48233,"BILL_AMT3":49291,"BILL_AMT4":28314,"BILL_AMT5":28959,"BILL_AMT6":29547,"PAY_AMT1":0,"PAY_AMT2":1100,"PAY_AMT3":1069,"PAY_AMT4":1000,"PAY_AMT5":1000,"PAY_AMT6":800}'
+      - name: Container logs
+        if: always()
+        run: docker logs api || true
+      - name: Push to Docker Hub
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && env.DOCKERHUB_USERNAME != ''
+        run: |
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+          docker tag credit-default-fair:ci "$DOCKERHUB_USERNAME/credit-default-fair:latest"
+          docker push "$DOCKERHUB_USERNAME/credit-default-fair:latest"

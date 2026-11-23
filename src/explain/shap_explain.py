@@ -22,17 +22,21 @@ class ShapExplainer:
         self.prep, self.model = pipe.named_steps["prep"], pipe.named_steps["xgb"]
         self.booster = self.model.get_booster()
 
-    def contributions(self, X: pd.DataFrame) -> tuple[pd.DataFrame, float, pd.DataFrame]:
-        """SHAP per input and engineered feature (sentinel/missing flags folded into their feature), plus their values."""
+    def prepare(self, X: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """(engineered features, model matrix): runs the feature builder once and the rest of the pipeline on its output."""
         features = self.prep.named_steps["features"].transform(X)
-        Xt = self.prep.transform(X)
+        return features, self.prep[1:].transform(features)
+
+    def contributions(self, X: pd.DataFrame, prepared: tuple[pd.DataFrame, pd.DataFrame] | None = None) -> tuple[pd.DataFrame, float, pd.DataFrame]:
+        """SHAP per input and engineered feature (sentinel/missing flags folded into their feature), plus their values."""
+        features, Xt = prepared if prepared is not None else self.prepare(X)
         contribs = self.booster.predict(xgb.DMatrix(Xt), pred_contribs=True)
         df = pd.DataFrame(contribs[:, :-1], columns=Xt.columns, index=X.index)
         return df.T.groupby(base_feature).sum().T[features.columns], float(contribs[0, -1]), features
 
-    def top5_contributions(self, row: pd.DataFrame) -> tuple[list[dict], float]:
+    def top5_contributions(self, row: pd.DataFrame, prepared: tuple[pd.DataFrame, pd.DataFrame] | None = None) -> tuple[list[dict], float]:
         start = time.perf_counter()
-        contribs, _, features = self.contributions(row)
+        contribs, _, features = self.contributions(row, prepared)
         s = contribs.iloc[0]
         top = s.reindex(s.abs().sort_values(ascending=False).index[:5])
         out = [{"feature": f, "value": round(float(features.iloc[0][f]), 4), "shap": round(float(v), 4)} for f, v in top.items()]

@@ -2,7 +2,7 @@
 
 > Educational artefact, not for real lending decisions.
 
-**Sensitive-attribute policy.** AGE and SEX are stored in a separate, index-aligned file (`data/processed/*_sensitive.parquet`) and are never in the model's feature matrix (`tests/test_features.py::test_age_and_sex_not_model_features`). Age bands are used only for fairness metrics, the ThresholdOptimizer threshold lookup, and DiCE immutability.
+**Sensitive-attribute policy.** AGE and SEX are stored in a separate, index-aligned file (`data/processed/*_sensitive.parquet`) and are never in the model's feature matrix (`tests/test_features.py::test_age_and_sex_not_model_features`). Age bands are used only for fairness metrics, as the sensitive feature when training the ExponentiatedGradient constraint, and for DiCE immutability. The deployed policy does not need the age band at serving time.
 
 **Proxy findings** (`reports/proxy_table.csv`, flag |association| > 0.4)
 - Taiwan: no feature exceeds 0.4. The strongest are MARRIAGE vs age (Cramér's V 0.297) and LIMIT_BAL vs age (Spearman 0.194). All kept, and MARRIAGE is noted as a weak proxy.

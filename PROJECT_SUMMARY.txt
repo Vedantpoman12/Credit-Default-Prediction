@@ -3,6 +3,8 @@ CREDIT DEFAULT PREDICTION WITH FAIRNESS CONSTRAINTS - PROJECT SUMMARY
 Educational artefact, NOT for real lending decisions. (BTECH CAP 501)
 
 Built by following "Credit_Default_Fast_Track_Plan_and_Prompts.docx", Steps 1 to 8.
+Sections 4 and 8 are the build history. The CURRENT state (deployed policy,
+test result, latency, CI) is in sections 5 and 9.
 Everything from the previous version was deleted except the raw datasets, which
 were moved to data/raw/.
 
@@ -173,12 +175,13 @@ STEP 8 - One-time test evaluation and presentation
 
 5. FINAL RESULTS VS TARGETS
 ---------------------------
-  Current model (retrained 2026-10-27, see section 8), validation split:
-    ROC-AUC 0.783 [0.764, 0.799] (>= 0.75 PASS), PR-AUC 0.560,
-    ECE 0.018 out-of-fold (<= 0.05 PASS), TPR gap 0.008 in-sample (<= 0.05 PASS),
-    median latency 22.8 ms (<= 50 ms PASS).
-  Previous model (one-time test run, 2026-10-26, NOT repeated for the new model):
-    test ROC-AUC 0.781 [0.762, 0.798], ECE 0.014, TPR gap 0.052.
+  Deployed: model 2c8471a0552e + ExponentiatedGradient eps 0.01 (decision #21).
+    Validation: ROC-AUC 0.783 (PASS), TPR gap 0.045 held-out (PASS).
+    Test (once, 2026-11-23): ROC-AUC 0.780 [0.762, 0.798] (PASS),
+      ECE 0.014 (PASS), TPR gap 0.153 (FAIL, target 0.05; unconstrained 0.215).
+    Median /score latency over HTTP: 37-42 ms (PASS; was 315 ms).
+  Previous model ed30878f38dc (ThresholdOptimizer), test 2026-10-26:
+    ROC-AUC 0.781, ECE 0.014, TPR gap 0.052 (reports/final_results_ed30878f38dc.json).
 
 
 6. NOTES AND DEVIATIONS
@@ -186,13 +189,12 @@ STEP 8 - One-time test evaluation and presentation
   - The datasets differ from the plan (see section 2).
   - Python 3.14 and a python:3.14-slim Docker image are used, because only 3.14
     is installed and the pinned packages need >= 3.11.
-  - The Docker image was not built here (the Docker daemon was not running).
-    CI and branch protection need a GitHub remote; nothing was pushed or
-    committed.
+  - The Docker image was not built locally (the Docker daemon was not running);
+    CI now builds it and smoke-tests /health and /score (section 9).
   - The 65+ band (about 16 people per split) is reported but excluded from gap
     metrics (n < 30 rule).
-  - To rerun the test evaluation, the lock file has to be deleted manually
-    (this is intentional).
+  - To rerun the test evaluation, the lock file has to be moved aside manually
+    (this is intentional; done once for the deployed model, decision #24).
 
 
 7. HOW TO RUN
@@ -216,7 +218,8 @@ STEP 8 - One-time test evaluation and presentation
     src/models/calibrate.py    never selects a calibrator that outputs 0 or 1
                                -> Platt scaling
     src/fairness/policy.py     GroupThresholds: deterministic equal-opportunity
-                               thresholds per age band (deployed)
+                               thresholds per age band (deployed briefly; replaced
+                               by ExponentiatedGradient, decision #21)
     src/explain/shap_explain.py  SHAP reports engineered features by name
     src/explain/recourse_dice.py returns "no actionable change" instead of
                                crashing when DiCE finds nothing
@@ -231,3 +234,19 @@ STEP 8 - One-time test evaluation and presentation
     gap on held-out data.
   Not done
     The test set was not re-evaluated (lock file kept).
+
+
+9. UPDATE (2026-11-23)
+----------------------
+  Latency      /score was 315 ms: the EG policy re-ran the pandas preprocessing
+               for each of its 4 live members, twice, plus once for SHAP. Now one
+               pass per request (FairPolicy.score, ShapExplainer.prepare) and a
+               NumPy FeatureBuilder: 37-42 ms median over HTTP. Outputs are
+               bit-identical (tests/test_model.py, tests/test_features.py).
+  Test set     Evaluated once for the deployed model (decision #24); the frozen
+               split was regenerated and matched SPLIT_CHECKSUMS.json exactly.
+               Fairness target missed on test (gap 0.153); not retuned.
+  CI           Workflow moved to .github/workflows/ci.yml (it never ran from
+               ci/ci.yml). The Docker job builds the image and smoke-tests it.
+  Docs         Model card, fairness decision, audits, EU AI Act pack and
+               presentation outline aligned with the deployed policy.

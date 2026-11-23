@@ -2,19 +2,20 @@
 
 > **⚠ NOT FOR REAL LENDING. Educational artefact, not for real lending decisions.**
 
-Class-weighted XGBoost, tuned with Optuna and isotonic-calibrated, with a Fairlearn equal-opportunity constraint across age bands. Includes SHAP and DiCE explanations, a Dockerised FastAPI service, PSI/Evidently drift monitoring, and CI with a performance gate and a fairness gate.
+Class-weighted, monotone XGBoost tuned with Optuna, with a Fairlearn ExponentiatedGradient equal-opportunity constraint across age bands and an isotonic-calibrated probability. Includes SHAP and DiCE explanations, a Dockerised FastAPI service, PSI/Evidently drift monitoring, and CI with a performance gate and a fairness gate.
 
 ## Results
-Current model (2c8471a0552e: 40 features, monotone constraints, Optuna 100 trials x 5-fold, Platt calibration, ExponentiatedGradient eps 0.01):
+Current model (2c8471a0552e: 40 features, monotone constraints, Optuna 100 trials x 5-fold, ExponentiatedGradient eps 0.01, isotonic-calibrated ensemble score):
 
-| Metric | Validation | Target |
-|---|---|---|
-| ROC-AUC | 0.783 [0.764, 0.800] | >= 0.75 |
-| PR-AUC | 0.559 [0.527, 0.596] | - |
-| ECE (out-of-fold) | 0.014 | <= 0.05 |
-| TPR gap (age bands, held-out) | 0.045 | <= 0.05 |
+| Metric | Validation | Test (once, 2026-11-23) | Target |
+|---|---|---|---|
+| ROC-AUC | 0.783 [0.764, 0.800] | 0.780 [0.762, 0.798] | >= 0.75 |
+| PR-AUC | 0.535 | 0.533 [0.504, 0.568] | - |
+| ECE (served probability) | 0.0001 (in-sample) | 0.014 | <= 0.05 |
+| TPR gap (age bands, n >= 30) | 0.045 | **0.153 (fails)** | <= 0.05 |
+| Median /score latency (HTTP, 500 req) | 37-42 ms | - | <= 50 ms |
 
-The one-time test evaluation (`reports/final_results.json`) was run on the previous model and has not been repeated (see `docs/decisions_log.md` #19).
+The fairness target is met on validation but not on the test set: under-25s are flagged most (test TPR 0.732 vs 0.579 for 55-64). Nothing was retuned on the test set. See `docs/MODEL_CARD.md` and `docs/decisions_log.md` #23-#26.
 
 ## Quick start
 ```bash

@@ -8,10 +8,10 @@
 
 | Harm | Evidence | Mitigation | Residual risk |
 |---|---|---|---|
-| Unequal error burden by age | Unconstrained TPR gap 0.1175 (val), 0.1896 (test) | ThresholdOptimizer TPR parity: 0.0153 (val), 0.0519 (test) | Gap slightly above target on test |
-| Disparate treatment through group thresholds | Age band used at serving | Used only for threshold lookup; documented; human review of refers | Legal acceptability varies by jurisdiction |
+| Unequal error burden by age | Unconstrained TPR gap 0.0852 (val), 0.2149 (test) | ExponentiatedGradient TPR parity (eps 0.01): 0.0454 (val), 0.1530 (test) | **Target missed on test**; <25 flagged most (TPR 0.732, FPR 0.294) |
+| Disparate treatment through group thresholds | Earlier policies needed the age band at serving | Deployed EG policy needs no age at serving; age used only in training the constraint and for audit | Low |
 | Small groups unprotected | 65+ n=16 (test) | Reported, warned | Not constrained |
 | Opaque decisions | - | SHAP top-5 and DiCE recourse | SHAP explains the raw score, not the final threshold |
-| Drift erodes fairness | Gap rises to 0.085-0.138 under injected drift | PSI monitoring, mandatory re-audit | Detection lag for label drift |
+| Drift erodes fairness | Gap rises to 0.077-0.082 under injected drift | PSI monitoring, mandatory re-audit | Detection lag for label drift |
 
 **Traceability:** `reports/tradeoff_table.csv`, `reports/final_results.json`, `reports/drift/inject_drift.json`, `docs/ethics_audit.md`.

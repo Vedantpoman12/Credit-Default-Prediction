@@ -49,24 +49,27 @@ class FeatureBuilder(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        X = X.copy()
-        limit = X["LIMIT_BAL"].clip(lower=1)
-        for k in range(1, 7):
-            X[f"UTIL_{k}"] = X[f"BILL_AMT{k}"] / limit
-        for k in range(1, 6):
-            X[f"PAY_RATIO_{k}"] = (X[f"PAY_AMT{k}"] / X[f"BILL_AMT{k + 1}"].clip(lower=1)).clip(0, 5)
-        util = X[[f"UTIL_{k}" for k in range(1, 7)]]
-        X["UTIL_MEAN"], X["UTIL_MAX"] = util.mean(axis=1), util.max(axis=1)
-        X["UTIL_TREND"] = X["UTIL_1"] - X["UTIL_6"]
-        status = X[self.PAY_STATUS]
-        X["MONTHS_LATE"] = (status > 0).sum(axis=1)
-        X["MAX_DELAY"] = status.max(axis=1)
-        X["MEAN_STATUS"] = status.mean(axis=1)
-        paid = X[[f"PAY_AMT{k}" for k in range(1, 6)]].sum(axis=1)
-        billed = X[[f"BILL_AMT{k}" for k in range(2, 7)]].sum(axis=1).clip(lower=1)
-        X["PAID_TO_BILLED"] = (paid / billed).clip(0, 5)
-        X["HEADROOM"] = (X["LIMIT_BAL"] - X["BILL_AMT1"]) / limit
-        return X
+        # Vectorised with NumPy (one DataFrame built at the end) because per-column pandas assignment
+        # dominated single-request latency. Output is identical to the column-by-column version;
+        # tests/test_features.py::test_feature_builder_matches_reference checks this exactly.
+        bill = X[[f"BILL_AMT{k}" for k in range(1, 7)]].to_numpy()
+        pay = X[[f"PAY_AMT{k}" for k in range(1, 6)]].to_numpy()
+        status = X[self.PAY_STATUS].to_numpy()
+        limit_bal = X["LIMIT_BAL"].to_numpy()
+        limit = np.maximum(limit_bal, 1)[:, None]
+        util = bill / limit
+        new = {f"UTIL_{k}": util[:, k - 1] for k in range(1, 7)}
+        ratio = np.clip(pay / np.maximum(bill[:, 1:], 1), 0, 5)
+        new.update({f"PAY_RATIO_{k}": ratio[:, k - 1] for k in range(1, 6)})
+        new["UTIL_MEAN"], new["UTIL_MAX"] = np.nanmean(util, axis=1), np.nanmax(util, axis=1)
+        new["UTIL_TREND"] = util[:, 0] - util[:, 5]
+        new["MONTHS_LATE"] = (status > 0).sum(axis=1).astype("int64")
+        new["MAX_DELAY"] = np.nanmax(status, axis=1)
+        new["MEAN_STATUS"] = np.nanmean(status, axis=1)
+        billed = np.maximum(np.nansum(bill[:, 1:], axis=1), 1)
+        new["PAID_TO_BILLED"] = np.clip(np.nansum(pay, axis=1) / billed, 0, 5)
+        new["HEADROOM"] = (limit_bal - bill[:, 0]) / limit[:, 0]
+        return pd.concat([X, pd.DataFrame(new, index=X.index)], axis=1)
 
 
 class Winsorizer(BaseEstimator, TransformerMixin):
