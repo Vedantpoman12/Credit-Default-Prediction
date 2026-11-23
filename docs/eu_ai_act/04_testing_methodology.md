@@ -12,6 +12,6 @@
 | Service | API contract tests, determinism, 500-request latency test | - |
 | CI gates | AUC >= 0.75 and TPR gap <= 0.05 on frozen validation | validation |
 
-**Test-set-once protocol:** `scripts/final_test_eval.py` writes `reports/final_test.lock` (timestamp, git commit, model version) and refuses to run again. It was run once on 2026-10-26: ROC-AUC 0.7808 [0.7623, 0.7984], PR-AUC 0.5342 [0.5041, 0.5658], ECE 0.0145, Brier 0.1350, TPR gap 0.0519.
+**Test-set-once protocol:** `scripts/final_test_eval.py` writes `reports/final_test.lock` (timestamp, git commit, model version) and refuses to run again. It was run once on 2026-10-26 for the previous model ed30878f38dc (ROC-AUC 0.7808, ECE 0.0145, TPR gap 0.0519; kept as `reports/final_results_ed30878f38dc.json`) and once on 2026-11-23 for the deployed model 2c8471a0552e (decision #24): ROC-AUC 0.7803 [0.7621, 0.7977], PR-AUC 0.5326 [0.5035, 0.5675], ECE 0.0140, Brier 0.1356, TPR gap 0.1530 (fails the 0.05 target).
 
 **Traceability:** `src/models/evaluate.py`, `src/models/calibrate.py`, `src/fairness/metrics.py`, `scripts/final_test_eval.py`, `tests/`.
