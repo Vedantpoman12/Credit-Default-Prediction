@@ -11,9 +11,9 @@ export function Footer() {
           <p className="text-sm text-muted-foreground">Educational artefact. Not for real lending decisions.</p>
         </div>
         <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
-          <a href="#features" className="hover:text-foreground">Features</a>
-          <a href="#how-it-works" className="hover:text-foreground">How it works</a>
-          <a href="#fairness" className="hover:text-foreground">Fairness</a>
+          <Link href="/#features" className="hover:text-foreground">Features</Link>
+          <Link href="/#how-it-works" className="hover:text-foreground">How it works</Link>
+          <Link href="/#fairness" className="hover:text-foreground">Fairness</Link>
           <Link href="/terms" className="hover:text-foreground">Terms</Link>
           <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
         </nav>

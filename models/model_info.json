@@ -1,10 +1,10 @@
 {
   "notice": "Educational artefact, not for real lending decisions",
-  "model_version": "2c8471a0552e",
-  "policy_version": "exponentiated_gradient-refer0.3-0.6",
-  "policy_kind": "exponentiated_gradient",
-  "requires_age_band": false,
-  "created_at": "2026-10-27T05:04:23.779565+00:00",
+  "model_version": "bb3e53125e45",
+  "policy_version": "group_thresholds-refer0.3-0.6",
+  "policy_kind": "group_thresholds",
+  "requires_age_band": true,
+  "created_at": "2026-10-30T04:42:47.954630+00:00",
   "training_data_checksum": "fd3766284e3832f9a06639c741dcd3c320d85a7bc4da8d9f3db8d6ae066b09a2",
   "features": [
     "LIMIT_BAL",
@@ -31,29 +31,29 @@
   ],
   "metrics": {
     "val_roc_auc": [
-      0.782608764220532,
-      0.7639286734600282,
-      0.7995871179514139
+      0.7816593667338116,
+      0.7628640761692194,
+      0.7984872865876727
     ],
     "val_pr_auc": [
-      0.559088569745478,
-      0.5273517026485064,
-      0.5956041167804194
+      0.5590682845188761,
+      0.5270346067525794,
+      0.5948695750879264
     ],
-    "val_ece_uncalibrated": 0.1976090335117446,
-    "val_ece_calibrated_oof": 0.014499692123536629,
+    "val_ece_uncalibrated": 0.19796727621472546,
+    "val_ece_calibrated_oof": 0.0194598680837898,
     "calibration_method": "sigmoid",
     "deployed_policy_val": {
-      "kind": "exponentiated_gradient",
-      "roc_auc": 0.7832737152237652,
-      "pr_auc": 0.535057827619692,
-      "f1": 0.5228813559322034,
-      "ece": 0.00014815236131350068,
-      "demographic_parity_gap": 0.06815089759761939,
-      "tpr_gap": 0.04540598290598297,
-      "fpr_gap": 0.047689659072345014,
-      "equalized_odds_gap": 0.047689659072345014,
-      "equal_opportunity_gap": 0.04540598290598297,
+      "kind": "group_thresholds",
+      "roc_auc": 0.7816593667338116,
+      "pr_auc": 0.5590682845188761,
+      "f1": 0.5269311064718163,
+      "ece": 0.020324218499547044,
+      "demographic_parity_gap": 0.050839825280317,
+      "tpr_gap": 0.010388739946380676,
+      "fpr_gap": 0.08997346679034451,
+      "equalized_odds_gap": 0.08997346679034451,
+      "equal_opportunity_gap": 0.010388739946380676,
       "excluded_groups": [
         "65+"
       ]
@@ -61,24 +61,24 @@
   },
   "fairness_gates": {
     "performance_gate": {
-      "roc_auc": 0.7832737152237652,
+      "roc_auc": 0.7816593667338116,
       "threshold": 0.75,
       "passed": true
     },
     "fairness_gate": {
-      "tpr_gap": 0.04540598290598297,
+      "tpr_gap": 0.010388739946380676,
       "threshold": 0.05,
       "passed": true,
       "excluded_small_groups": [
         "65+"
       ],
       "tpr_by_group": {
-        "25-34": 0.6139,
-        "35-44": 0.6203,
-        "45-54": 0.6164,
-        "55-64": 0.6042,
+        "25-34": 0.6354,
+        "35-44": 0.6339,
+        "45-54": 0.6352,
+        "55-64": 0.625,
         "65+": 0.6667,
-        "<25": 0.6496
+        "<25": 0.6325
       }
     }
   }

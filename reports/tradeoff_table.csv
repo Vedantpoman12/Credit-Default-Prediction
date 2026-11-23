@@ -1,8 +1,8 @@
 model,family,roc_auc,pr_auc,f1,tpr_gap,fpr_gap,selection_rate_gap,deployed
-exp_grad_eps0.005,reduction,0.7836,0.5422,0.5254,0.0686,0.0415,0.0743,False
-exp_grad_eps0.01,reduction,0.7833,0.5351,0.5229,0.0454,0.0477,0.0682,True
-exp_grad_eps0.02,reduction,0.7837,0.5334,0.5287,0.0668,0.0483,0.0705,False
-exp_grad_eps0.05,reduction,0.7845,0.5362,0.5261,0.0703,0.059,0.0874,False
-group_thresholds,post-processing,0.7826,0.5591,0.5286,0.0134,0.0786,0.0697,False
-threshold_optimizer,post-processing,0.7826,0.5591,0.5425,0.0375,0.0611,0.0615,False
-unconstrained,unconstrained,0.7826,0.5591,0.5265,0.0852,0.0879,0.1127,False
+exp_grad_eps0.005,reduction,0.7844,0.5376,0.5218,0.0625,0.0576,0.0819,False
+exp_grad_eps0.01,reduction,0.7842,0.5402,0.5187,0.1042,0.0586,0.0834,False
+exp_grad_eps0.02,reduction,0.7842,0.5374,0.5271,0.0796,0.0642,0.0904,False
+exp_grad_eps0.05,reduction,0.7847,0.5337,0.5294,0.06,0.0458,0.0755,False
+group_thresholds,post-processing,0.7817,0.5591,0.5269,0.0104,0.09,0.0508,True
+threshold_optimizer,post-processing,0.7817,0.5591,0.5458,0.0059,0.0677,0.0584,False
+unconstrained,unconstrained,0.7817,0.5591,0.5273,0.1023,0.1002,0.1259,False
